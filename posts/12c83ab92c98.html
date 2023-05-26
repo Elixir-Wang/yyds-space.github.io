@@ -1,0 +1,842 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><div id="myscoll"></div><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>F5 故障转移机制 | YYDS Space</title><meta name="keywords" content="F5,BIGIP,Failover,故障转移,主备切换"><meta name="author" content="YYDS Space"><meta name="copyright" content="YYDS Space"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="一、故障转移方式☘️ 故障转移方式有两种，一种是网络故障转移，还有一种是 Failover 心跳线故障转移。 1、网络故障转移 网络故障转移基于心跳信号检测，主备设备使用 Failover 地址发送网络故障转移心跳信号数据包。 （1） Failover 地址配置 导航至 Device Management  ››  Devices  ››，选择设备，点击 Failover Network 进行 F">
+<meta property="og:type" content="article">
+<meta property="og:title" content="F5 故障转移机制">
+<meta property="og:url" content="https://www.yyds.space/posts/12c83ab92c98.html">
+<meta property="og:site_name" content="YYDS Space">
+<meta property="og:description" content="一、故障转移方式☘️ 故障转移方式有两种，一种是网络故障转移，还有一种是 Failover 心跳线故障转移。 1、网络故障转移 网络故障转移基于心跳信号检测，主备设备使用 Failover 地址发送网络故障转移心跳信号数据包。 （1） Failover 地址配置 导航至 Device Management  ››  Devices  ››，选择设备，点击 Failover Network 进行 F">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.niux.plus/LightPicture/2023/01/1fe67937e0511743.png">
+<meta property="article:published_time" content="2022-03-13T07:38:00.000Z">
+<meta property="article:modified_time" content="2023-03-26T05:40:28.188Z">
+<meta property="article:author" content="YYDS Space">
+<meta property="article:tag" content="F5">
+<meta property="article:tag" content="BIGIP">
+<meta property="article:tag" content="Failover">
+<meta property="article:tag" content="故障转移">
+<meta property="article:tag" content="主备切换">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.niux.plus/LightPicture/2023/01/1fe67937e0511743.png"><link rel="shortcut icon" href="/"><link rel="canonical" href="https://www.yyds.space/posts/12c83ab92c98"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://lf6-cdn-tos.bytecdntp.com/cdn/expire-1-M/font-awesome/6.0.0/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.staticfile.org/fancyapps-ui/4.0.31/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: {"limitDay":365,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":230},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdnjs.cloudflare.com/ajax/libs/flickr-justified-gallery/2.1.2/fjGallery.min.js',
+      css: 'https://cdnjs.cloudflare.com/ajax/libs/flickr-justified-gallery/2.1.2/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isAnchor: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'F5 故障转移机制',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-03-26 13:40:28'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          const now = new Date()
+          const hour = now.getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else if (t === 'light') activateLightMode()
+          else activateDarkMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><link rel="stylesheet" href="https://cdn1.tianli0.top/npm/element-ui@2.15.6/packages/theme-chalk/lib/index.css"><style id="themeColor"></style><style id="rightSide"></style><style id="transPercent"></style><style id="blurNum"></style><style id="settingStyle"></style><span id="fps"></span><style id="defineBg"></style><style id="menu_shadow"></style><script src="https://www.whbblog.cn/js/jquery-latest.js"></script><svg aria-hidden="true" style="position:absolute; overflow:hidden; width:0; height:0"><symbol id="icon-sun" viewBox="0 0 1024 1024"><path d="M960 512l-128 128v192h-192l-128 128-128-128H192v-192l-128-128 128-128V192h192l128-128 128 128h192v192z" fill="#FFD878" p-id="8420"></path><path d="M736 512a224 224 0 1 0-448 0 224 224 0 1 0 448 0z" fill="#FFE4A9" p-id="8421"></path><path d="M512 109.248L626.752 224H800v173.248L914.752 512 800 626.752V800h-173.248L512 914.752 397.248 800H224v-173.248L109.248 512 224 397.248V224h173.248L512 109.248M512 64l-128 128H192v192l-128 128 128 128v192h192l128 128 128-128h192v-192l128-128-128-128V192h-192l-128-128z" fill="#4D5152" p-id="8422"></path><path d="M512 320c105.888 0 192 86.112 192 192s-86.112 192-192 192-192-86.112-192-192 86.112-192 192-192m0-32a224 224 0 1 0 0 448 224 224 0 0 0 0-448z" fill="#4D5152" p-id="8423"></path></symbol><symbol id="icon-moon" viewBox="0 0 1024 1024"><path d="M611.370667 167.082667a445.013333 445.013333 0 0 1-38.4 161.834666 477.824 477.824 0 0 1-244.736 244.394667 445.141333 445.141333 0 0 1-161.109334 38.058667 85.077333 85.077333 0 0 0-65.066666 135.722666A462.08 462.08 0 1 0 747.093333 102.058667a85.077333 85.077333 0 0 0-135.722666 65.024z" fill="#FFB531" p-id="11345"></path><path d="M329.728 274.133333l35.157333-35.157333a21.333333 21.333333 0 1 0-30.165333-30.165333l-35.157333 35.157333-35.114667-35.157333a21.333333 21.333333 0 0 0-30.165333 30.165333l35.114666 35.157333-35.114666 35.157334a21.333333 21.333333 0 1 0 30.165333 30.165333l35.114667-35.157333 35.157333 35.157333a21.333333 21.333333 0 1 0 30.165333-30.165333z" fill="#030835" p-id="11346"></path></symbol></svg><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><!-- hexo injector head_end start --><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-swiper/lib/swiper.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-swiper/lib/swiperstyle.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/font-awesome-animation.min.css" media="defer" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/tag_plugins.css" media="defer" onload="this.media='all'"><script src="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/carousel-touch.js"></script><!-- hexo injector head_end end --><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="YYDS Space" type="application/atom+xml">
+</head><body><div id="loading-box" onclick="document.getElementById(&quot;loading-box&quot;).classList.add(&quot;loaded&quot;)"><div class="loading-bg"><div class="loading-img"></div><div class="loading-image-dot"></div></div></div><div id="web_bg"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.whbblog.cn/other/touxiang.jpg" onerror="onerror=null;src='/assets/r1.jpg'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">92</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">119</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-a-homeliving"></use></svg><span class="menu_word" style="font-size:17px"> 首页</span></a></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-anquan"></use></svg><span class="menu_word" style="font-size:17px"> 负载均衡</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/F5/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-slbfuzaijunhengSLB">                   </use></svg><span class="menu_word" style="font-size:17px"> F5</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/nginx/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-nginx">                   </use></svg><span class="menu_word" style="font-size:17px"> NGINX</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/haproxy/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-daililiebiaoICO">                   </use></svg><span class="menu_word" style="font-size:17px"> HAProxy</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/lvs/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-slbfuzaijunheng1">                   </use></svg><span class="menu_word" style="font-size:17px"> LVS</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-yun"></use></svg><span class="menu_word" style="font-size:17px"> Cloud</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/tcpip/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-wangluo">                   </use></svg><span class="menu_word" style="font-size:17px"> TCP/IP</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/docker/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-jingyu">                   </use></svg><span class="menu_word" style="font-size:17px"> Docker</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/openstack/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-icon_openstack">                   </use></svg><span class="menu_word" style="font-size:17px"> Openstack</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/k8s/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-chuanduo">                   </use></svg><span class="menu_word" style="font-size:17px"> Kubernetes</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/linux/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-linux">                   </use></svg><span class="menu_word" style="font-size:17px"> Linux</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-bug"></use></svg><span class="menu_word" style="font-size:17px"> 测试</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/%E6%B5%8B%E8%AF%95%E5%9F%BA%E7%A1%80/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shuji">                   </use></svg><span class="menu_word" style="font-size:17px"> 测试基础</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/python/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-python">                   </use></svg><span class="menu_word" style="font-size:17px"> Python</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%8B%E8%AF%95/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-ceshi">                   </use></svg><span class="menu_word" style="font-size:17px"> 自动化测试</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-qita"></use></svg><span class="menu_word" style="font-size:17px"> 其他</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/hexo/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-hexo">                   </use></svg><span class="menu_word" style="font-size:17px"> Hexo</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/website/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shujuzhanshi">                   </use></svg><span class="menu_word" style="font-size:17px"> 建站</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/%E6%9D%82%E9%A1%B9/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-fenleiorguangchangorqitatianchong">                   </use></svg><span class="menu_word" style="font-size:17px"> 杂项</span></a></li><li><a class="site-page child faa-parent animated-hover" target="_blank" rel="noopener external nofollow noreferrer" href="https://news.yyds.space/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-love-sign">                   </use></svg><span class="menu_word" style="font-size:17px"> 早报</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shejiaoxinxi"></use></svg><span class="menu_word" style="font-size:17px"> 社交</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/social/fcircle/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-pengyouquan">                   </use></svg><span class="menu_word" style="font-size:17px"> 朋友圈</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/comments/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-liuyan">                   </use></svg><span class="menu_word" style="font-size:17px"> 留言板</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/social/link/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-lianjie">                   </use></svg><span class="menu_word" style="font-size:17px"> 友情链接</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-wangye"></use></svg><span class="menu_word" style="font-size:17px"> 网站</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/archives/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-guidang1">                   </use></svg><span class="menu_word" style="font-size:17px"> 归档</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/tags/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-sekuaibiaoqian">                   </use></svg><span class="menu_word" style="font-size:17px"> 标签</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon--tongjibiao">                   </use></svg><span class="menu_word" style="font-size:17px"> 分类</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/site/echarts/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shujutongji1">                   </use></svg><span class="menu_word" style="font-size:17px"> 统计</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-maoliang"></use></svg><span class="menu_word" style="font-size:17px"> 个人</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/personal/time/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-xianxingshalou">                   </use></svg><span class="menu_word" style="font-size:17px"> 网站事件</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/personal/nav/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-zhifengche">                   </use></svg><span class="menu_word" style="font-size:17px"> 网址导航</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/personal/about/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-paperplane">                   </use></svg><span class="menu_word" style="font-size:17px"> 关于站长</span></a></li></ul></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">YYDS Space</a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-a-homeliving"></use></svg><span class="menu_word" style="font-size:17px"> 首页</span></a></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-anquan"></use></svg><span class="menu_word" style="font-size:17px"> 负载均衡</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/F5/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-slbfuzaijunhengSLB">                   </use></svg><span class="menu_word" style="font-size:17px"> F5</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/nginx/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-nginx">                   </use></svg><span class="menu_word" style="font-size:17px"> NGINX</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/haproxy/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-daililiebiaoICO">                   </use></svg><span class="menu_word" style="font-size:17px"> HAProxy</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/lvs/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-slbfuzaijunheng1">                   </use></svg><span class="menu_word" style="font-size:17px"> LVS</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-yun"></use></svg><span class="menu_word" style="font-size:17px"> Cloud</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/tcpip/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-wangluo">                   </use></svg><span class="menu_word" style="font-size:17px"> TCP/IP</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/docker/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-jingyu">                   </use></svg><span class="menu_word" style="font-size:17px"> Docker</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/openstack/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-icon_openstack">                   </use></svg><span class="menu_word" style="font-size:17px"> Openstack</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/k8s/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-chuanduo">                   </use></svg><span class="menu_word" style="font-size:17px"> Kubernetes</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/linux/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-linux">                   </use></svg><span class="menu_word" style="font-size:17px"> Linux</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-bug"></use></svg><span class="menu_word" style="font-size:17px"> 测试</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/%E6%B5%8B%E8%AF%95%E5%9F%BA%E7%A1%80/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shuji">                   </use></svg><span class="menu_word" style="font-size:17px"> 测试基础</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/python/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-python">                   </use></svg><span class="menu_word" style="font-size:17px"> Python</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%8B%E8%AF%95/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-ceshi">                   </use></svg><span class="menu_word" style="font-size:17px"> 自动化测试</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-qita"></use></svg><span class="menu_word" style="font-size:17px"> 其他</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/hexo/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-hexo">                   </use></svg><span class="menu_word" style="font-size:17px"> Hexo</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/website/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shujuzhanshi">                   </use></svg><span class="menu_word" style="font-size:17px"> 建站</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/%E6%9D%82%E9%A1%B9/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-fenleiorguangchangorqitatianchong">                   </use></svg><span class="menu_word" style="font-size:17px"> 杂项</span></a></li><li><a class="site-page child faa-parent animated-hover" target="_blank" rel="noopener external nofollow noreferrer" href="https://news.yyds.space/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-love-sign">                   </use></svg><span class="menu_word" style="font-size:17px"> 早报</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shejiaoxinxi"></use></svg><span class="menu_word" style="font-size:17px"> 社交</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/social/fcircle/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-pengyouquan">                   </use></svg><span class="menu_word" style="font-size:17px"> 朋友圈</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/comments/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-liuyan">                   </use></svg><span class="menu_word" style="font-size:17px"> 留言板</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/social/link/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-lianjie">                   </use></svg><span class="menu_word" style="font-size:17px"> 友情链接</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-wangye"></use></svg><span class="menu_word" style="font-size:17px"> 网站</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/archives/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-guidang1">                   </use></svg><span class="menu_word" style="font-size:17px"> 归档</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/tags/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-sekuaibiaoqian">                   </use></svg><span class="menu_word" style="font-size:17px"> 标签</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon--tongjibiao">                   </use></svg><span class="menu_word" style="font-size:17px"> 分类</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/site/echarts/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shujutongji1">                   </use></svg><span class="menu_word" style="font-size:17px"> 统计</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-maoliang"></use></svg><span class="menu_word" style="font-size:17px"> 个人</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/personal/time/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-xianxingshalou">                   </use></svg><span class="menu_word" style="font-size:17px"> 网站事件</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/personal/nav/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-zhifengche">                   </use></svg><span class="menu_word" style="font-size:17px"> 网址导航</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/personal/about/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-paperplane">                   </use></svg><span class="menu_word" style="font-size:17px"> 关于站长</span></a></li></ul></div></div><center id="name-container"><a id="page-name" href="javascript:scrollToTop()" rel="external nofollow noreferrer">PAGE_NAME</a></center><div id="nav-right"><div id="search-button"><a class="search faa-parent animated-hover" title="检索站内任何你想要的信息"><svg class="faa-tada icon" style="height:24px;width:24px;fill:currentColor;position:relative;top:6px" aria-hidden="true"><use xlink:href="#icon-valentine_-search-love-find-heart"></use></svg><span> 搜索</span></a></div><a class="meihua faa-parent animated-hover" onclick="toggleWinbox()" title="美化设置-自定义你的风格" id="meihua-button"><svg class="faa-tada icon" style="height:26px;width:26px;fill:currentColor;position:relative;top:8px" aria-hidden="true"><use xlink:href="#icon-tupian1"></use></svg></a><a class="sun_moon faa-parent animated-hover" onclick="switchNightMode()" title="浅色和深色模式转换" id="nightmode-button"><svg class="faa-tada" style="height:25px;width:25px;fill:currentColor;position:relative;top:7px" viewBox="0 0 1024 1024"><use id="modeicon" xlink:href="#icon-moon">       </use></svg></a><div id="toggle-menu"><a><i class="fas fa-bars fa-fw"></i></a></div></div></div></nav><div id="post-info"><h1 class="post-title">F5 故障转移机制</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><svg class="meta_icon post-meta-icon" style="width:30px;height:30px;position:relative;top:10px"><use xlink:href="#icon-rili"></use></svg><span class="post-meta-label">发表于 </span><time class="post-meta-date-created" datetime="2022-03-13T07:38:00.000Z" title="发表于 2022-03-13 15:38:00">2022-03-13</time><span class="post-meta-separator">|</span><svg class="meta_icon post-meta-icon" style="width:18px;height:18px;position:relative;top:5px"><use xlink:href="#icon-gengxin1"></use></svg><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2023-03-26T05:40:28.188Z" title="更新于 2023-03-26 13:40:28">2023-03-26</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><svg class="meta_icon post-meta-icon" style="width:18px;height:18px;position:relative;top:5px"><use xlink:href="#icon-biaoqian"></use></svg><a class="post-meta-categories" href="/categories/F5/">F5</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><svg class="meta_icon post-meta-icon" style="width:25px;height:25px;position:relative;top:8px"><use xlink:href="#icon-charuword"></use></svg><span class="post-meta-label">字数总计:</span><span class="word-count">3684</span><span class="post-meta-separator">|</span><svg class="meta_icon post-meta-icon" style="width:20px;height:20px;position:relative;top:5px"><use xlink:href="#icon-shizhong"></use></svg><span class="post-meta-label">阅读时长:</span><span>12分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="F5 故障转移机制"><svg class="meta_icon post-meta-icon" style="width:25px;height:25px;position:relative;top:5px"><use xlink:href="#icon-eye"></use></svg><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h2 id="一、故障转移方式☘️">一、故障转移方式☘️</h2>
+<p><strong>故障转移方式有两种，一种是网络故障转移，还有一种是 Failover 心跳线故障转移。</strong></p>
+<h3 id="1、网络故障转移">1、网络故障转移</h3>
+<p>网络故障转移基于心跳信号检测，主备设备使用 Failover 地址发送网络故障转移心跳信号数据包。</p>
+<h4 id="（1）-Failover-地址配置">（1） Failover 地址配置</h4>
+<p>导航至 <code>Device Management  ››  Devices  ››</code>，选择设备，点击 <code>Failover Network</code> 进行 <code>Failover 地址</code>配置。</p>
+<p><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.whbblog.cn/img/image-20220312183123212.png" alt="image-20220312183123212"></p>
+<blockquote>
+<p><strong>配置建议：</strong></p>
+<ul>
+<li>
+<p>1️⃣ 若要确保最稳定的网络故障转移配置，请选择两个通道进行网络故障转移通信。F5 认为最佳做法是同时选择管理地址和 TMM 网络地址。避免在 BIG-IP 系统初始化时以及在完全建立 TMM 网络连接通道之前出现意外的故障转移情况。为此，必须配置管理和 TMM 故障转移单播地址。</p>
+</li>
+<li>
+<p>2️⃣ 确保已为 DSC 组成员之间的正确时间同步配置了可靠的 NTP 服务器。</p>
+</li>
+<li>
+<p>3️⃣ 在部署网络故障转移之前，若要确保预期网络的可靠性，请考虑以下建议：</p>
+<ul>
+<li>
+<p>确保您有权访问和控制临时设备，以及 BIG-IP 系统之间的链接。</p>
+</li>
+<li>
+<p>测试BIG-IP系统之间的故障转移网络，以确保网络提供低于100ms的低延迟。</p>
+<p>重要事项：由于性能较差的网络而丢弃或延迟的 BIG-IP 检测信号消息可能会触发 BIG-IP 对等系统之间的意外故障转移。</p>
+</li>
+</ul>
+</li>
+</ul>
+</blockquote>
+<h4 id="（2）网络故障切换的服务端口和协议">（2）网络故障切换的服务端口和协议</h4>
+<p>​	配置网络故障转移时，冗余 BIG-IP 系统使用网络来确定对端设备的状态。当 BIG-IP 冗余系统配置为使用网络故障转移时，系统将通过配置的 Failover 地址进行通信。下表显示了用于 BIG-IP 网络故障转移的传输协议和服务端口。</p>
+<table>
+<thead>
+<tr>
+<th>BIG-IP LTM version</th>
+<th>Protocol</th>
+<th>Service port</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16.x</td>
+<td>UDP</td>
+<td>1026</td>
+</tr>
+<tr>
+<td>15.x</td>
+<td>UDP</td>
+<td>1026</td>
+</tr>
+<tr>
+<td>14.x</td>
+<td>UDP</td>
+<td>1026</td>
+</tr>
+<tr>
+<td>13.x</td>
+<td>UDP</td>
+<td>1026</td>
+</tr>
+<tr>
+<td>12.x</td>
+<td>UDP</td>
+<td>1026</td>
+</tr>
+<tr>
+<td>11.x</td>
+<td>UDP</td>
+<td>1026</td>
+</tr>
+<tr>
+<td>10.x</td>
+<td>UDP</td>
+<td>1026</td>
+</tr>
+<tr>
+<td>9.6.x</td>
+<td>UDP</td>
+<td>1026</td>
+</tr>
+<tr>
+<td>9.4.x</td>
+<td>UDP</td>
+<td>1026</td>
+</tr>
+<tr>
+<td>9.3.x</td>
+<td>TCP</td>
+<td>1028</td>
+</tr>
+<tr>
+<td>9.2.x</td>
+<td>SCTP</td>
+<td>1028</td>
+</tr>
+<tr>
+<td>9.0.1 through 9.1.3</td>
+<td>TCP</td>
+<td>1028</td>
+</tr>
+<tr>
+<td>9.0.0</td>
+<td>UDP</td>
+<td>1028</td>
+</tr>
+</tbody>
+</table>
+<h4 id="（3）Mirror-地址配置">（3）Mirror 地址配置</h4>
+<p>导航至 <code>Device Management  ››  Devices  ››</code>，选择设备，点击 <code>Mirroring</code> 进行 <code>Mirror 地址</code>配置。</p>
+<p><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.whbblog.cn/img/image-20220312191310071.png" alt="image-20220312191310071"></p>
+<p>​	Mirror 地址可以配置为<code>Self IP</code>地址或者<code>MGMT</code>地址，“**主本地镜像地址&quot;<strong>设置，以分配系统用于建立镜像通道的首选自身 IP 地址。此外，还可以为设备组的每个成员配置</strong>&quot;辅助本地镜像地址”**设置。“**辅助本地镜像地址”**是当无法使用主镜像建立通道时，系统将使用该地址建立镜像通道。</p>
+<p><strong>要点</strong>： 配置主本地镜像地址和辅助本地镜像地址时，BIG-IP 系统仅将其中一个地址用于镜像链路，并且首选主地址。如果活动镜像链路出现故障，备用 BIG-IP 系统将关闭所有当前镜像连接，并开始使用其他镜像链路镜像新连接。</p>
+<h4 id="（4）用于-BIG-IP-连接和持久性镜像的传输协议">（4）用于 BIG-IP 连接和持久性镜像的传输协议</h4>
+<p><code>连接</code>和<code>会话保持</code>镜像功能允许 BIG-IP 系统将<code>连接</code>和<code>会话保持</code>信息复制到冗余对的备用单元。</p>
+<table>
+<thead>
+<tr>
+<th>BIG-IP LTM Version</th>
+<th>Protocol</th>
+<th>Port</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>11.6.0 and later</td>
+<td>TCP</td>
+<td>1029 - 1055</td>
+</tr>
+<tr>
+<td>11.4.0 through 11.5.x</td>
+<td>TCP</td>
+<td>1029 - 1043</td>
+</tr>
+<tr>
+<td>11.0.0 through 11.3.0</td>
+<td>TCP</td>
+<td>1028</td>
+</tr>
+<tr>
+<td>10.x</td>
+<td>TCP</td>
+<td>1028</td>
+</tr>
+<tr>
+<td>9.6.x</td>
+<td>TCP</td>
+<td>1028</td>
+</tr>
+<tr>
+<td>9.4.x</td>
+<td>TCP</td>
+<td>1028</td>
+</tr>
+<tr>
+<td>9.3.x</td>
+<td>TCP</td>
+<td>1028</td>
+</tr>
+<tr>
+<td>9.2.x</td>
+<td>SCTP</td>
+<td>1028</td>
+</tr>
+<tr>
+<td>9.0.1 through 9.1.3</td>
+<td>TCP</td>
+<td>1028</td>
+</tr>
+<tr>
+<td>9.0.0</td>
+<td>UDP</td>
+<td>1028</td>
+</tr>
+</tbody>
+</table>
+<p>注意：从 BIG-IP 11.4.0 开始，BIG-IP 系统为每个流量组维护一个单独的镜像通道。每个连接通道的端口范围从 TCP 1029 开始，并为每个创建的新流量组和通道递增。</p>
+<h4 id="（5）网络故障转移检测信号的数据包速率">（5）网络故障转移检测信号的数据包速率</h4>
+<p>BIG-IP 系统通过网络发送检测信号数据包，以传达可用性以及活动或待机状态。系统以一定的速率发送检测信号数据包，该速率因 BIG-IP 系统的版本而异。下表显示了每个 BIG-IP 版本的检测信号速率。</p>
+<table>
+<thead>
+<tr>
+<th>BIG-IP 版本</th>
+<th>心跳信号检测速率 （每秒数据包数）</th>
+<th>详细信息</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16.x</td>
+<td>10</td>
+<td>网络故障转移心跳增加以提供快速故障转移功能。</td>
+</tr>
+<tr>
+<td>15.x</td>
+<td>10</td>
+<td>网络故障转移心跳增加以提供快速故障转移功能。</td>
+</tr>
+<tr>
+<td>14.x</td>
+<td>10</td>
+<td>网络故障转移心跳增加以提供快速故障转移功能。</td>
+</tr>
+<tr>
+<td>13.x</td>
+<td>10</td>
+<td>网络故障转移心跳增加以提供快速故障转移功能。</td>
+</tr>
+<tr>
+<td>12.x</td>
+<td>10</td>
+<td>网络故障转移心跳增加以提供快速故障转移功能。</td>
+</tr>
+<tr>
+<td>11.x</td>
+<td>10</td>
+<td>网络故障转移心跳增加以提供快速故障转移功能。</td>
+</tr>
+<tr>
+<td>10.2.x</td>
+<td>10</td>
+<td>网络故障转移心跳增加以提供快速故障转移功能。</td>
+</tr>
+<tr>
+<td>10.1.0</td>
+<td>10</td>
+<td>网络故障转移心跳增加以提供快速故障转移功能。</td>
+</tr>
+<tr>
+<td>10.0.x</td>
+<td>1 - 2</td>
+<td>网络故障切换检测信号与状态镜像通信分离。</td>
+</tr>
+<tr>
+<td>9.4.x</td>
+<td>1 - 2</td>
+<td>网络故障切换检测信号与状态镜像通信分离。</td>
+</tr>
+<tr>
+<td>9.3.x</td>
+<td>1 - 2</td>
+<td>网络故障切换检测信号与状态镜像通信分离。</td>
+</tr>
+<tr>
+<td>9.2.x</td>
+<td>3</td>
+<td>网络故障切换心跳信号与大IP系统之间的状态镜像通信一起发送。</td>
+</tr>
+<tr>
+<td>9.1.x</td>
+<td>3</td>
+<td>网络故障切换心跳信号与大IP系统之间的状态镜像通信一起发送。</td>
+</tr>
+<tr>
+<td>9.0.x</td>
+<td>3</td>
+<td>网络故障切换心跳信号与大IP系统之间的状态镜像通信一起发送。</td>
+</tr>
+</tbody>
+</table>
+<h4 id="（6）故障切换时间">（6）故障切换时间</h4>
+<p>​	BIG-IP网络故障切换功能允许设备使用网络来传达其故障切换状态。备用BIG-IP系统使用一个内部计时器来跟踪自备用设备从活动单元接收到上次故障转移状态更新以来经过的时间。系统使用 nettimeoutsec 数据库键值，用于指定备用设备在上次从活动设备更新后变为活动设备之前等待的秒数。默认设置为三秒。由于单元之间的网络连接可能会穿越多个网络连接和设备，因此网络状况可能偶尔会阻止单元在短时间内（例如，少量丢包或短暂的网络中断）彼此通信其状态。此设置有助于在临时通信中断的情况下防止过早故障切换。</p>
+<p>注意：对于大多数环境，F5建议使用默认故障切换。<code>nettimeoutsec</code> 值为3秒。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 如需更改 nettimeoutsec 数据库键值，使用如下语法：</span></span><br><span class="line">tmsh modify /sys db failover.nettimeoutsec value &lt;new_value&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 示例：更改 nettimeoutsec 数据库键值为5s</span></span><br><span class="line">tmsh modify /sys db failover.nettimeoutsec value 5</span><br></pre></td></tr></table></figure>
+<h2 id="二、Failover-互联心跳线故障转移🌿">二、Failover 互联心跳线故障转移🌿</h2>
+<p>​	Failover 互联心跳线故障切换也基于心跳检测，即一个 BIG-IP 系统不断向另一个系统发送电压。如果没有从另一个BIG-IP系统获得响应，则在不到一秒钟的时间内发生到对等系统的故障切换。</p>
+<p>​	Failover 互联心跳线故障转移只是一个心跳信号，不携带任何状态信息。为了使某些功能正常运行，必须通过网络进行通信。例如，流量管理微内核（TMM）使用网络将数据包和流状态更新同步到对等方，以进行连接镜像。要启用正确的状态报告和镜像，F5建议您在硬连线故障切换之外配置网络故障切换。</p>
+<h2 id="三、网络和硬连线故障转移的比较🍀">三、网络和硬连线故障转移的比较🍀</h2>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>网络故障转移</th>
+<th>硬连线故障转移</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>基于检测信号检测，其中系统通过内部 IP 网络发送检测信号数据包。</td>
+<td>基于一种简单的机制，其中有源器件置位（或取消置位）电压（CTS/RTS）信号以指示有源状态。</td>
+</tr>
+<tr>
+<td>2</td>
+<td>支持包含两个或多个 BIG-IP 设备的设备组部署。</td>
+<td>仅支持两个 BIG-IP 设备。</td>
+</tr>
+<tr>
+<td>3</td>
+<td>支持基于机箱的平台 （VIPRIONS）、BIG-IP VCMP Guest 和 BIG-IP 虚拟版 （VE） 系统。</td>
+<td>不支持基于机箱的平台 （VIPRIONS）、BIG-IP VCMP Guest 和 BIG-IP 虚拟版 （VE） 系统。</td>
+</tr>
+<tr>
+<td>4</td>
+<td>支持主动-主动 HA 配置。</td>
+<td>不支持主动-主动 HA 配置。</td>
+</tr>
+<tr>
+<td>5</td>
+<td>支持具有多个流量组的 HA 配置</td>
+<td>不支持具有多个流量组的 HA 配置。</td>
+</tr>
+<tr>
+<td>6</td>
+<td>网络数据包包含用于传达设备可用性和故障转移状态的数据。</td>
+<td>不会通过故障转移电缆发送或接收任何数据。</td>
+</tr>
+<tr>
+<td>7</td>
+<td>为故障转移设置的网络接口还可用于设备的配置同步和连接镜像。</td>
+<td>硬连线故障转移电缆专用于 HA 故障转移使用。</td>
+</tr>
+<tr>
+<td>8</td>
+<td>可以在多个BIG-IP设备之间的IP网络中设置一个距离。</td>
+<td>两个 BIG-IP 设备之间的距离受最大硬连线电缆长度 50 英尺的限制。</td>
+</tr>
+<tr>
+<td>9</td>
+<td>网络问题可能会导致 BIG-IP 系统遇到故障转移问题。</td>
+<td>独立于网络问题。</td>
+</tr>
+<tr>
+<td>10</td>
+<td>数据库变量 <strong>failover.nettimeoutsec</strong> 设置在未收到检测信号消息后将对等体视为关闭的时间。最小值为 1。</td>
+<td>硬连线故障转移可以提供不到一秒的更快故障转移响应时间。</td>
+</tr>
+</tbody>
+</table>
+<p>注意：如果将 BIG-IP 高可用性对配置为使用网络故障转移，并且硬连线故障转移电缆也连接这两个单元，则硬连线故障转移始终具有优先权。如果网络故障转移流量受到威胁，这两个设备不会进行故障转移，因为硬连线故障转移电缆仍会连接它们。</p>
+<h2 id="四、F5-双机故障转移事件🌲">四、F5 双机故障转移事件🌲</h2>
+<h3 id="1、守护进程异常导致切换">1、守护进程异常导致切换</h3>
+<p>下表列出了每个受监视守护程序的名称、说明、超时期限和默认故障安全操作。</p>
+<table>
+<thead>
+<tr>
+<th>守护 进程</th>
+<th>描述</th>
+<th>检测信号超时</th>
+<th>默认故障安全操作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MCPD</td>
+<td>消息传递和配置</td>
+<td>300秒</td>
+<td>Restart All* ：重启所有服务</td>
+</tr>
+<tr>
+<td>TMM</td>
+<td>流量管理</td>
+<td>10 秒</td>
+<td>Go Offline &amp; Down Links &amp; restart* ：系统将脱机，关闭所有链接，并重新启动服务</td>
+</tr>
+<tr>
+<td>SOD</td>
+<td>故障转移</td>
+<td>60秒</td>
+<td>Restart All* ：重启所有服务</td>
+</tr>
+<tr>
+<td>BIGD</td>
+<td>运行状况监视器</td>
+<td>150秒</td>
+<td>Restart ：系统将重新启动此系统服务</td>
+</tr>
+<tr>
+<td>BCM56XXD</td>
+<td>交换机硬件驱动程序</td>
+<td>60秒</td>
+<td>Restart ：系统将重新启动此系统服务</td>
+</tr>
+<tr>
+<td>TMROUTED</td>
+<td>路由表管理</td>
+<td>30 秒</td>
+<td>Restart ：系统将重新启动此系统服务</td>
+</tr>
+<tr>
+<td>CBRD</td>
+<td>提供基于 XML 内容的路由的服务</td>
+<td>30 秒</td>
+<td>Restart ：系统将重新启动此系统服务</td>
+</tr>
+<tr>
+<td>SCRIPTD</td>
+<td>基于 <strong>tmsh</strong> 命令执行用户定义脚本的守护程序</td>
+<td>60秒</td>
+<td>Restart ：系统将重新启动此系统服务</td>
+</tr>
+<tr>
+<td>SNMPD</td>
+<td>用于远程监视的简单网络管理协议代理</td>
+<td>300秒</td>
+<td>Restart ：系统将重新启动此系统服务</td>
+</tr>
+</tbody>
+</table>
+<p><strong>特定于模块的守护程序</strong></p>
+<p>只有在特定于守护程序的模块获得<code>Licensed</code>许可并<code>provisioned</code>配置后，BIG-IP系统才会监控以下守护程序。</p>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>守护 进程</th>
+<th>描述</th>
+<th>检测信号超时</th>
+<th>默认故障安全操作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DNS（以前称为 GTM）</td>
+<td>GTMD</td>
+<td>全局流量管理</td>
+<td>60秒</td>
+<td>Go Offline &amp; Restart：离线并重新启动改进程</td>
+</tr>
+<tr>
+<td>vCMP</td>
+<td>VCMPD</td>
+<td>vCMP 客户机管理守护程序</td>
+<td>60秒</td>
+<td>Restart ：系统将重新启动此系统服务</td>
+</tr>
+<tr>
+<td>ASM</td>
+<td>BD</td>
+<td>应用程序安全管理器策略守护程序</td>
+<td>30秒</td>
+<td>Restart ：系统将重新启动此系统服务</td>
+</tr>
+<tr>
+<td>AAM（前身为 WAM）</td>
+<td>WAMD</td>
+<td>应用程序加速管理器守护程序</td>
+<td>30秒</td>
+<td>Restart ：系统将重新启动此系统服务</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2、网络异常导致切换">2、网络异常导致切换</h3>
+<p>BIG-IP 系统监视网络组件，下表介绍了网络异常导致的故障转移切换。</p>
+<table>
+<thead>
+<tr>
+<th>高可用性功能</th>
+<th>描述</th>
+<th>故障安全操作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pool-member-down</td>
+<td>配置网关故障保护功能后，BIG-IP系统将监视网关池成员，并在可用池成员少于指定数量时采取行动。</td>
+<td>故障转移到对等方</td>
+</tr>
+<tr>
+<td>vlan-failsafe</td>
+<td>配置VLAN故障保护功能后，BIG-IP系统会监控通过指定VLAN的网络流量，并在检测到网络连接丢失时采取措施。</td>
+<td>重新启动</td>
+</tr>
+<tr>
+<td>ha-group-score</td>
+<td>当HA组被分配给流量组时，系统会监视 trunk、pool 和 VIPRION 群集等对象。当您将HA组与特定设备上的流量组实例关联时，BIG-IP系统会根据trunk、pool或群集可用性，为关联的流量组计算该设备的运行状况分数。</td>
+<td>故障转移</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3、硬件故障导致切换">3、硬件故障导致切换</h3>
+<p>BIG-IP 系统监视各种硬件组件，然后在系统检测到故障时采取适当的措施。如下表所示：</p>
+<table>
+<thead>
+<tr>
+<th>高可用性功能</th>
+<th>描述</th>
+<th>故障安全操作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>crypto-failsafe</td>
+<td>指示 SSL 卡已锁定在具有 Cavium Nitrox、Cave Creek 或 Coleto Creek SSL 卡的 BIG-IP 系统上</td>
+<td>go-offline-downlinks ：系统离线，关闭所有链接</td>
+</tr>
+<tr>
+<td>nic-failafe</td>
+<td>由 TMM 用于检测 HSB 连接接口中的发送/接收故障</td>
+<td>reboot ：重启系统</td>
+</tr>
+<tr>
+<td>hardware-failover</td>
+<td>系统用于报告配置为使用硬连线故障切换的系统的故障转移电缆上的电压电平下降</td>
+<td>go-active ：进入Active状态</td>
+</tr>
+<tr>
+<td>switchboard-failsafe</td>
+<td>用于检测 Broadcom 交换机和 TMM 之间的数据路径中的发送/接收故障</td>
+<td>Go Offline Abort TM*</td>
+</tr>
+</tbody>
+</table>
+<h2 id="五、对守护程序故障安全事件进行故障排除🍃">五、对守护程序故障安全事件进行故障排除🍃</h2>
+<h3 id="1、查看系统日志文件">1、查看系统日志文件</h3>
+<p>通过查看 <strong>/var/log/ltm</strong> 文件来验证哪个守护程序导致了故障转移操作。找到 <strong>HA daemon_heartbeat</strong>消息，并查看检测信号失败之前发生的任何相关日志记录消息。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /var/log/ltm</span><br></pre></td></tr></table></figure>
+<h3 id="2、检查守护程序核心文件">2、检查守护程序核心文件</h3>
+<p>通过检查 <code>/var/core</code> 或 <code>/shared/core</code> 目录来确定守护程序是否生成了核心文件。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> /var/core/</span><br><span class="line"><span class="built_in">ls</span> /shared/core/</span><br></pre></td></tr></table></figure>
+<h3 id="3、检查系统资源相关问题">3、检查系统资源相关问题</h3>
+<p>您可以通过运行命令（如 <strong>top</strong> 命令）来检查与系统资源相关的问题。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">top</span><br></pre></td></tr></table></figure>
+<h3 id="4、查看系统-HA-表">4、查看系统 HA 表</h3>
+<p>您可以通过从命令行查看 HA 表来检查各种进程的 HA 状态。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tmsh show sys ha-status</span><br></pre></td></tr></table></figure>
+<h2 id="六、参考链接🌳">六、参考链接🌳</h2>
+<p><strong>感谢以下文档支持！</strong></p>
+<p>🐿️<a target="_blank" rel="noopener external nofollow noreferrer" href="https://support.f5.com/csp/article/K2397">Comparison of hardwired failover and network failover features (f5.com)</a></p>
+<p>🦦<a target="_blank" rel="noopener external nofollow noreferrer" href="https://support.f5.com/csp/article/K7510">Packet rate for network failover heartbeat (f5.com)</a></p>
+<p>🦥<a target="_blank" rel="noopener external nofollow noreferrer" href="https://support.f5.com/csp/article/K95002127">Troubleshooting BIG-IP failover events (f5.com)</a></p>
+</article><div class="post-copyright"><div class="post-copyright__title"><span class="post-copyright-info"><h>F5 故障转移机制</h></span></div><div class="post-copyright__type"><span class="post-copyright-info"><a href="https://www.yyds.space/posts/12c83ab92c98.html">https://www.yyds.space/posts/12c83ab92c98.html</a></span></div><div class="post-copyright-m"><div class="post-copyright-m-info"><div class="post-copyright-a"><h>作者</h><div class="post-copyright-cc-info"><h>YYDS Space</h></div></div><div class="post-copyright-c"><h>发布于</h><div class="post-copyright-cc-info"><h>2022-03-13</h></div></div><div class="post-copyright-u"><h>更新于</h><div class="post-copyright-cc-info"><h>2023-03-26</h></div></div><div class="post-copyright-c"><h>许可协议</h><div class="post-copyright-cc-info"><a class="icon" rel="noopener external nofollow noreferrer" target="_blank" title="Creative Commons" href="https://creativecommons.org/"><i class="fab fa-creative-commons"></i></a><a rel="noopener external nofollow noreferrer" target="_blank" title="CC BY-NC-SA 4.0" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a></div></div></div></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/F5/"><div class="tags-punctuation"><svg class="faa-tada icon" style="height:1.1em;width:1.1em;fill:currentColor;position:relative;top:2px;margin-right:3px" aria-hidden="true"><use xlink:href="#icon-sekuaibiaoqian"></use></svg></div>F5</a><a class="post-meta__tags" href="/tags/BIGIP/"><div class="tags-punctuation"><svg class="faa-tada icon" style="height:1.1em;width:1.1em;fill:currentColor;position:relative;top:2px;margin-right:3px" aria-hidden="true"><use xlink:href="#icon-sekuaibiaoqian"></use></svg></div>BIGIP</a><a class="post-meta__tags" href="/tags/Failover/"><div class="tags-punctuation"><svg class="faa-tada icon" style="height:1.1em;width:1.1em;fill:currentColor;position:relative;top:2px;margin-right:3px" aria-hidden="true"><use xlink:href="#icon-sekuaibiaoqian"></use></svg></div>Failover</a><a class="post-meta__tags" href="/tags/%E6%95%85%E9%9A%9C%E8%BD%AC%E7%A7%BB/"><div class="tags-punctuation"><svg class="faa-tada icon" style="height:1.1em;width:1.1em;fill:currentColor;position:relative;top:2px;margin-right:3px" aria-hidden="true"><use xlink:href="#icon-sekuaibiaoqian"></use></svg></div>故障转移</a><a class="post-meta__tags" href="/tags/%E4%B8%BB%E5%A4%87%E5%88%87%E6%8D%A2/"><div class="tags-punctuation"><svg class="faa-tada icon" style="height:1.1em;width:1.1em;fill:currentColor;position:relative;top:2px;margin-right:3px" aria-hidden="true"><use xlink:href="#icon-sekuaibiaoqian"></use></svg></div>主备切换</a></div></div><link rel="stylesheet" href="/css/coin.css" media="defer" onload="this.media='all'"/><div class="post-reward"><button class="tip-button reward-button"><span class="tip-button__text">投喂作者</span><div class="coin-wrapper"><div class="coin"><div class="coin__middle"></div><div class="coin__back"></div><div class="coin__front"></div></div></div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="https://cdn.niux.plus/LightPicture/2023/02/341dff4125857b97.png" rel="external nofollow noreferrer" target="_blank"><img class="post-qr-code-img" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/02/341dff4125857b97.png" alt="微信"/></a><div class="post-qr-code-desc">微信</div></li><li class="reward-item"><a href="https://cdn.niux.plus/LightPicture/2023/02/d2f65b4e3b5f3fd3.png" rel="external nofollow noreferrer" target="_blank"><img class="post-qr-code-img" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/02/d2f65b4e3b5f3fd3.png" alt="支付宝"/></a><div class="post-qr-code-desc">支付宝</div></li></ul></div></button></div><audio id="coinAudio" src="https://npm.elemecdn.com/akilar-candyassets@1.0.36/audio/aowu.m4a"></audio><script defer="defer" src="/js/coin.js"></script><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/posts/92717defa17f.html"><img class="prev-cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/cf8d5afba1bb5016.png" onerror="onerror=null;src='/assets/r2.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">F5 配置 DNS 解析日志</div></div></a></div><div class="next-post pull-right"><a href="/posts/037fc9ef176d.html"><img class="next-cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/cb01aaa6a05067bb.png" onerror="onerror=null;src='/assets/r2.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">F5 HTTPS 双向认证配置</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/posts/7876fd4c89c0.html" title="APM+LTM实现对访问vs的用户进行认证"><img class="cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/f5452888ae734a67.png" alt="cover"><div class="content is-center"><div class="date"><i class="fas fa-history fa-fw"></i> 2023-03-26</div><div class="title">APM+LTM实现对访问vs的用户进行认证</div></div></a></div><div><a href="/posts/32e7b0786afe.html" title="APM 双因素验证实战"><img class="cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/29d2fdbe0ff4140f.png" alt="cover"><div class="content is-center"><div class="date"><i class="fas fa-history fa-fw"></i> 2023-03-26</div><div class="title">APM 双因素验证实战</div></div></a></div><div><a href="/posts/c809b70e55d6.html" title="APM 本地认证实现分组"><img class="cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/b24c742c22bc67e8.png" alt="cover"><div class="content is-center"><div class="date"><i class="fas fa-history fa-fw"></i> 2023-03-26</div><div class="title">APM 本地认证实现分组</div></div></a></div><div><a href="/posts/fbf432725089.html" title="F5 APM Network Access 配置"><img class="cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/29d2fdbe0ff4140f.png" alt="cover"><div class="content is-center"><div class="date"><i class="fas fa-history fa-fw"></i> 2023-03-19</div><div class="title">F5 APM Network Access 配置</div></div></a></div><div><a href="/posts/c25da7e500f9.html" title="F5 BGP 配置"><img class="cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/4d8bf5f62d350018.png" alt="cover"><div class="content is-center"><div class="date"><i class="fas fa-history fa-fw"></i> 2023-03-26</div><div class="title">F5 BGP 配置</div></div></a></div><div><a href="/posts/9648ad8a6474.html" title="F5 EDNS 配置"><img class="cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/cb01aaa6a05067bb.png" alt="cover"><div class="content is-center"><div class="date"><i class="fas fa-history fa-fw"></i> 2023-03-26</div><div class="title">F5 EDNS 配置</div></div></a></div></div></div><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><svg class="meta_icon" style="width:22px;height:22px;position:relative;top:5px"><use xlink:href="#icon-mulu1"></use></svg><span style="font-weight:bold">目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E6%95%85%E9%9A%9C%E8%BD%AC%E7%A7%BB%E6%96%B9%E5%BC%8F%E2%98%98%EF%B8%8F"><span class="toc-text">一、故障转移方式☘️</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E7%BD%91%E7%BB%9C%E6%95%85%E9%9A%9C%E8%BD%AC%E7%A7%BB"><span class="toc-text">1、网络故障转移</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%EF%BC%881%EF%BC%89-Failover-%E5%9C%B0%E5%9D%80%E9%85%8D%E7%BD%AE"><span class="toc-text">（1） Failover 地址配置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%EF%BC%882%EF%BC%89%E7%BD%91%E7%BB%9C%E6%95%85%E9%9A%9C%E5%88%87%E6%8D%A2%E7%9A%84%E6%9C%8D%E5%8A%A1%E7%AB%AF%E5%8F%A3%E5%92%8C%E5%8D%8F%E8%AE%AE"><span class="toc-text">（2）网络故障切换的服务端口和协议</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%EF%BC%883%EF%BC%89Mirror-%E5%9C%B0%E5%9D%80%E9%85%8D%E7%BD%AE"><span class="toc-text">（3）Mirror 地址配置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%EF%BC%884%EF%BC%89%E7%94%A8%E4%BA%8E-BIG-IP-%E8%BF%9E%E6%8E%A5%E5%92%8C%E6%8C%81%E4%B9%85%E6%80%A7%E9%95%9C%E5%83%8F%E7%9A%84%E4%BC%A0%E8%BE%93%E5%8D%8F%E8%AE%AE"><span class="toc-text">（4）用于 BIG-IP 连接和持久性镜像的传输协议</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%EF%BC%885%EF%BC%89%E7%BD%91%E7%BB%9C%E6%95%85%E9%9A%9C%E8%BD%AC%E7%A7%BB%E6%A3%80%E6%B5%8B%E4%BF%A1%E5%8F%B7%E7%9A%84%E6%95%B0%E6%8D%AE%E5%8C%85%E9%80%9F%E7%8E%87"><span class="toc-text">（5）网络故障转移检测信号的数据包速率</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%EF%BC%886%EF%BC%89%E6%95%85%E9%9A%9C%E5%88%87%E6%8D%A2%E6%97%B6%E9%97%B4"><span class="toc-text">（6）故障切换时间</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81Failover-%E4%BA%92%E8%81%94%E5%BF%83%E8%B7%B3%E7%BA%BF%E6%95%85%E9%9A%9C%E8%BD%AC%E7%A7%BB%F0%9F%8C%BF"><span class="toc-text">二、Failover 互联心跳线故障转移🌿</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E7%BD%91%E7%BB%9C%E5%92%8C%E7%A1%AC%E8%BF%9E%E7%BA%BF%E6%95%85%E9%9A%9C%E8%BD%AC%E7%A7%BB%E7%9A%84%E6%AF%94%E8%BE%83%F0%9F%8D%80"><span class="toc-text">三、网络和硬连线故障转移的比较🍀</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81F5-%E5%8F%8C%E6%9C%BA%E6%95%85%E9%9A%9C%E8%BD%AC%E7%A7%BB%E4%BA%8B%E4%BB%B6%F0%9F%8C%B2"><span class="toc-text">四、F5 双机故障转移事件🌲</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E5%BC%82%E5%B8%B8%E5%AF%BC%E8%87%B4%E5%88%87%E6%8D%A2"><span class="toc-text">1、守护进程异常导致切换</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E7%BD%91%E7%BB%9C%E5%BC%82%E5%B8%B8%E5%AF%BC%E8%87%B4%E5%88%87%E6%8D%A2"><span class="toc-text">2、网络异常导致切换</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3%E3%80%81%E7%A1%AC%E4%BB%B6%E6%95%85%E9%9A%9C%E5%AF%BC%E8%87%B4%E5%88%87%E6%8D%A2"><span class="toc-text">3、硬件故障导致切换</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E5%AF%B9%E5%AE%88%E6%8A%A4%E7%A8%8B%E5%BA%8F%E6%95%85%E9%9A%9C%E5%AE%89%E5%85%A8%E4%BA%8B%E4%BB%B6%E8%BF%9B%E8%A1%8C%E6%95%85%E9%9A%9C%E6%8E%92%E9%99%A4%F0%9F%8D%83"><span class="toc-text">五、对守护程序故障安全事件进行故障排除🍃</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E6%9F%A5%E7%9C%8B%E7%B3%BB%E7%BB%9F%E6%97%A5%E5%BF%97%E6%96%87%E4%BB%B6"><span class="toc-text">1、查看系统日志文件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E6%A3%80%E6%9F%A5%E5%AE%88%E6%8A%A4%E7%A8%8B%E5%BA%8F%E6%A0%B8%E5%BF%83%E6%96%87%E4%BB%B6"><span class="toc-text">2、检查守护程序核心文件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3%E3%80%81%E6%A3%80%E6%9F%A5%E7%B3%BB%E7%BB%9F%E8%B5%84%E6%BA%90%E7%9B%B8%E5%85%B3%E9%97%AE%E9%A2%98"><span class="toc-text">3、检查系统资源相关问题</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4%E3%80%81%E6%9F%A5%E7%9C%8B%E7%B3%BB%E7%BB%9F-HA-%E8%A1%A8"><span class="toc-text">4、查看系统 HA 表</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5%F0%9F%8C%B3"><span class="toc-text">六、参考链接🌳</span></a></li></ol></div></div></div></div></main><footer id="footer" style="background-color: transparent;"><div id="footer-wrap"><div id="ft"><div class="ft-item-1"><div class="t-top"><div class="t-t-l"><p class="ft-t t-l-t">格言🧬</p><div class="bg-ad"><div>再看看那个光点，它就在这里，这是家园，这是我们 —— 你所爱的每一个人，你认识的一个人，你听说过的每一个人，曾经有过的每一个人，都在它上面度过他们的一生✨</div><div class="btn-xz-box"><a class="btn-xz" target="_blank" rel="noopener external nofollow noreferrer" href="https://stellarium.org/">点击开启星辰之旅</a></div></div></div><div class="t-t-r"><p class="ft-t t-l-t">猜你想看💡</p><ul class="ft-links"><li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.fomal.cc/posts/eec9786.html">魔改指南</a><a href="/box/nav/">网址导航</a></li><li><a href="/social/link/">我的朋友</a><a href="/comments/">留点什么</a></li><li><a href="/personal/about/">关于作者</a><a href="/archives/">文章归档</a></li><li><a href="/categories/">文章分类</a><a href="/tags/">文章标签</a></li><li><a href="/personal/time/">建设进程</a><a href="/site/echarts/">网站统计</a></li></ul></div></div></div><div class="ft-item-2"><p class="ft-t">推荐友链⌛</p><div class="ft-img-group"><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.fomal.cc/" title="Fomalhaut🥝"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.fomal.cc/assets/avatar.webp" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://tzy1997.com/" title="Ethan.Tzy"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://bu.dusays.com/2022/05/02/626f92e193879.jpg" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://akilar.top/" title="Akilarの糖果屋"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://npm.elemecdn.com/akilar-friends@latest/avatar/akilar.top.jpg" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/zh-cn/" title="hexo"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://d33wubrfki0l68.cloudfront.net/6657ba50e702d84afb32fe846bed54fba1a77add/827ae/logo.svg" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://butterfly.js.org/" title="Jerry"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://butterfly.js.org/img/avatar.png" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://blog.eurkon.com" title="Eurkon"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://blog.eurkon.com/images/user/avatar.jpg" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://anzhiy.cn/" title="安知鱼`Blog"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img02.anzhiy.cn/adminuploads/1/2022/09/15/63232b7d91d22.jpg" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.qcqx.cn" title="轻笑Chuckle"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.qcqx.cn/img/head.webp" alt=""/></a></div></div></div></div><div class="copyright"><span><b>&copy;2021-2023</b></span><span><b>&nbsp;&nbsp;By YYDS Space</b></span></div><div id="workboard"></div><p id="ghbdages"><a class="github-badge" target="_blank" href="https://hexo.io/" rel="external nofollow noreferrer" style="margin-inline:5px" title="博客框架为Hexo_v6.3.0"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://sourcebucket.s3.ladydaily.com/badge/Frame-Hexo-blue.svg" alt=""/></a><a class="github-badge" target="_blank" href="https://butterfly.js.org/" rel="external nofollow noreferrer" style="margin-inline:5px" title="主题版本Butterfly_v4.3.1"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://sourcebucket.s3.ladydaily.com/badge/Theme-Butterfly-6513df.svg" alt=""/></a><a class="github-badge" target="_blank" href="https://vercel.com/" rel="external nofollow noreferrer" style="margin-inline:5px" title="本站采用多线部署，主线路托管于Vercel"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://sourcebucket.s3.ladydaily.com/badge/Hosted-Vercel-brightgreen.svg" alt=""/></a><a class="github-badge" target="_blank" href="https://user.51.la/" rel="external nofollow noreferrer" style="margin-inline:5px" title="本站数据分析得益于51la技术支持"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://sourcebucket.s3.ladydaily.com/badge/Analytics-51la-3db1eb.svg" alt=""/></a><a class="github-badge" target="_blank" href="https://beian.miit.gov.cn/" rel="external nofollow noreferrer" style="margin-inline:5px" title="本站已加入ICP备案，京ICP备2021018172号-3"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/blog/img/beian.svg" alt=""/></a><a class="github-badge" target="_blank" href="https://icp.gov.moe/?keyword=20239986" rel="external nofollow noreferrer" style="margin-inline:5px" title="本站已加入萌ICP豪华套餐，萌ICP备20239986号"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/blog/img/meng.svg" alt=""/></a><a class="github-badge" target="_blank" href="https://github.com/" rel="external nofollow noreferrer" style="margin-inline:5px" title="本网站源码由Github提供存储仓库"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src=" https://sourcebucket.s3.ladydaily.com/badge/Source-Github-d021d6.svg" alt=""/></a><a class="github-badge" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" rel="external nofollow noreferrer" style="margin-inline:5px" title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://sourcebucket.s3.ladydaily.com/badge/Copyright-BY--NC--SA--4.svg" alt=""/></a></p></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><a class="icon-V hidden" onclick="switchNightMode()" title="浅色和深色模式转换"><svg width="25" height="25" viewBox="0 0 1024 1024"><use id="modeicon" xlink:href="#icon-moon"></use></svg></a><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button><button class="share" type="button" title="右键模式" onclick="changeMouseMode()"><i class="fas fa-mouse"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog right_side"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button class="share" type="button" title="分享链接" onclick="share()"><i class="fas fa-share-nodes"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i><span id="percent">0<span>%</span></span></button><button id="go-down" type="button" title="直达底部" onclick="btf.scrollToDest(document.body.scrollHeight, 500)"><i class="fas fa-arrow-down"></i></button></div></div><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div></div></div><div id="search-mask"></div></div><div class="js-pjax" id="rightMenu"><div class="rightMenu-group rightMenu-small"><a class="rightMenu-item" href="javascript:window.history.back();" rel="external nofollow noreferrer"><i class="fa fa-arrow-left"></i></a><a class="rightMenu-item" href="javascript:window.history.forward();" rel="external nofollow noreferrer"><i class="fa fa-arrow-right"></i></a><a class="rightMenu-item" href="javascript:window.location.reload();" rel="external nofollow noreferrer"><i class="fa fa-refresh"></i></a><a class="rightMenu-item" href="javascript:rmf.scrollToTop();" rel="external nofollow noreferrer"><i class="fa fa-arrow-up"></i></a></div><div class="rightMenu-group rightMenu-line hide" id="menu-text"><a class="rightMenu-item" href="javascript:rmf.copySelect();" rel="external nofollow noreferrer"><i class="fa fa-copy"></i><span>复制</span></a><a class="rightMenu-item" href="javascript:window.open(&quot;https://www.baidu.com/s?wd=&quot;+window.getSelection().toString());window.location.reload();" rel="external nofollow noreferrer"><i class="fa fa-search"></i><span>百度搜索</span></a></div><div class="rightMenu-group rightMenu-line hide" id="menu-too"><a class="rightMenu-item" href="javascript:window.open(window.getSelection().toString());window.location.reload();" rel="external nofollow noreferrer"><i class="fa fa-link"></i><span>转到链接</span></a></div><div class="rightMenu-group rightMenu-line hide" id="menu-paste"><a class="rightMenu-item" href="javascript:rmf.paste()" rel="external nofollow noreferrer"><i class="fa fa-copy"></i><span>粘贴</span></a></div><div class="rightMenu-group rightMenu-line hide" id="menu-post"><a class="rightMenu-item" href="#post-comment"><i class="fas fa-comment"></i><span>空降评论</span></a><a class="rightMenu-item" href="javascript:rmf.copyWordsLink()" rel="external nofollow noreferrer"><i class="fa fa-link"></i><span>复制本文地址</span></a></div><div class="rightMenu-group rightMenu-line hide" id="menu-to"><a class="rightMenu-item" href="javascript:rmf.openWithNewTab()" rel="external nofollow noreferrer"><i class="fa fa-window-restore"></i><span>新窗口打开</span></a><a class="rightMenu-item" id="menu-too" href="javascript:rmf.open()" rel="external nofollow noreferrer"><i class="fa fa-link"></i><span>转到链接</span></a><a class="rightMenu-item" href="javascript:rmf.copyLink()" rel="external nofollow noreferrer"><i class="fa fa-copy"></i><span>复制链接</span></a></div><div class="rightMenu-group rightMenu-line hide" id="menu-img"><a class="rightMenu-item" href="javascript:rmf.saveAs()" rel="external nofollow noreferrer"><i class="fa fa-download"></i><span>保存图片</span></a><a class="rightMenu-item" href="javascript:rmf.openWithNewTab()" rel="external nofollow noreferrer"><i class="fa fa-window-restore"></i><span>在新窗口打开</span></a><a class="rightMenu-item" href="javascript:rmf.copyLink()" rel="external nofollow noreferrer"><i class="fa fa-copy"></i><span>复制图片链接</span></a></div><div class="rightMenu-group rightMenu-line"><a class="rightMenu-item" href="javascript:randomPost()" rel="external nofollow noreferrer"><i class="fa fa-paper-plane"></i><span>随便逛逛</span></a><a class="rightMenu-item" href="javascript:switchNightMode();" rel="external nofollow noreferrer"><i class="fa fa-moon"></i><span>昼夜切换</span></a><a class="rightMenu-item" href="/personal/about/"><i class="fa fa-info-circle"></i><span>关于博客</span></a><a class="rightMenu-item" href="javascript:toggleWinbox();" rel="external nofollow noreferrer"><i class="fas fa-cog"></i><span>美化设置</span></a><a class="rightMenu-item" href="javascript:rmf.fullScreen();" rel="external nofollow noreferrer"><i class="fas fa-expand"></i><span>切换全屏</span></a><a class="rightMenu-item" href="javascript:window.print();" rel="external nofollow noreferrer"><i class="fa-solid fa-print"></i><span>打印页面</span></a></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.staticfile.org/fancyapps-ui/4.0.31/fancybox.umd.min.js"></script><script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/instant.page/5.1.0/instantpage.min.js" type="module"></script><script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/vanilla-lazyload/17.3.1/lazyload.iife.min.js"></script><script src="/js/search/local-search.js"></script><script async="async">var preloader = {
+  endLoading: () => {
+    document.body.style.overflow = 'auto';
+    document.getElementById('loading-box').classList.add("loaded")
+  },
+  initLoading: () => {
+    document.body.style.overflow = '';
+    document.getElementById('loading-box').classList.remove("loaded")
+
+  }
+}
+window.addEventListener('load',preloader.endLoading())
+setTimeout(function(){preloader.endLoading();}, 5000);
+document.getElementById('loading-box').addEventListener('click',()=> {preloader.endLoading()})</script><div class="js-pjax"><script>(()=>{
+  const init = () => {
+    twikoo.init(Object.assign({
+      el: '#twikoo-wrap',
+      envId: 'https://twikoo.yyds.space/',
+      region: '',
+      onCommentLoaded: function () {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      }
+    }, null))
+  }
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://twikoo.yyds.space/',
+      region: '',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(function (res) {
+      countELement.innerText = res[0].count
+    }).catch(function (err) {
+      console.error(err);
+    });
+  }
+
+  const runFn = () => {
+    init()
+    
+  }
+
+  const loadTwikoo = () => {
+    if (typeof twikoo === 'object') {
+      setTimeout(runFn,0)
+      return
+    } 
+    getScript('https://cdn.staticfile.org/twikoo/1.6.8/twikoo.all.min.js').then(runFn)
+  }
+
+  if ('Twikoo' === 'Twikoo' || !true) {
+    if (true) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = () => {
+      loadTwikoo()
+    }
+  }
+})()</script></div><script src="https://cdn.staticfile.org/jquery/3.6.3/jquery.min.js"></script><script async src="https://cdn1.tianli0.top/npm/vue@2.6.14/dist/vue.min.js"></script><script async src="https://cdn1.tianli0.top/npm/element-ui@2.15.6/lib/index.js"></script><script async src="https://cdn.bootcdn.net/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script><script async src="//npm.elemecdn.com/pace-js@1.2.4/pace.min.js"></script><script defer src="https://cdn1.tianli0.top/gh/nextapps-de/winbox/dist/winbox.bundle.min.js"></script><script async src="//at.alicdn.com/t/c/font_3586335_hsivh70x0fm.js"></script><script async src="//at.alicdn.com/t/c/font_3636804_gr02jmjr3y9.js"></script><script async src="//at.alicdn.com/t/c/font_3612150_kfv55xn3u2g.js"></script><script async src="//at.alicdn.com/t/c/font_3874817_oq0w2btaabs.js"></script><script async src="https://cdn.wpon.cn/2022-sucai/Gold-ingot.js"></script><canvas id="universe"></canvas><canvas id="snow"></canvas><script defer src="/js/fomal.js"></script><script src="https://lib.baomitu.com/pjax/0.2.8/pjax.min.js"></script><script>let pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show","#web_bg",".js-pjax","#bibi","body > title","#app","#tag-echarts","#posts-echart","#categories-echarts"]
+
+var pjax = new Pjax({
+  elements: 'a:not([target="_blank"])',
+  selectors: pjaxSelectors,
+  cacheBust: false,
+  analytics: false,
+  scrollRestoration: false
+})
+
+document.addEventListener('pjax:send', function () {
+
+  // removeEventListener scroll 
+  window.tocScrollFn && window.removeEventListener('scroll', window.tocScrollFn)
+  window.scrollCollect && window.removeEventListener('scroll', scrollCollect)
+
+  typeof preloader === 'object' && preloader.initLoading()
+  document.getElementById('rightside').style.cssText = "opacity: ''; transform: ''"
+  
+  if (window.aplayers) {
+    for (let i = 0; i < window.aplayers.length; i++) {
+      if (!window.aplayers[i].options.fixed) {
+        window.aplayers[i].destroy()
+      }
+    }
+  }
+
+  typeof typed === 'object' && typed.destroy()
+
+  //reset readmode
+  const $bodyClassList = document.body.classList
+  $bodyClassList.contains('read-mode') && $bodyClassList.remove('read-mode')
+
+  typeof disqusjs === 'object' && disqusjs.destroy()
+})
+
+document.addEventListener('pjax:complete', function () {
+  window.refreshFn()
+
+  document.querySelectorAll('script[data-pjax]').forEach(item => {
+    const newScript = document.createElement('script')
+    const content = item.text || item.textContent || item.innerHTML || ""
+    Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+    newScript.appendChild(document.createTextNode(content))
+    item.parentNode.replaceChild(newScript, item)
+  })
+
+  GLOBAL_CONFIG.islazyload && window.lazyLoadInstance.update()
+
+  typeof chatBtnFn === 'function' && chatBtnFn()
+  typeof panguInit === 'function' && panguInit()
+
+  // google analytics
+  typeof gtag === 'function' && gtag('config', '', {'page_path': window.location.pathname});
+
+  // baidu analytics
+  typeof _hmt === 'object' && _hmt.push(['_trackPageview',window.location.pathname]);
+
+  typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+
+  // prismjs
+  typeof Prism === 'object' && Prism.highlightAll()
+
+  typeof preloader === 'object' && preloader.endLoading()
+})
+
+document.addEventListener('pjax:error', (e) => {
+  if (e.request.status === 404) {
+    pjax.loadUrl('/404.html')
+  }
+})</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><!-- hexo injector body_end start --><script data-pjax>
+  function butterfly_swiper_injector_config(){
+    var parent_div_git = document.getElementById('recent-posts');
+    var item_html = '<div class="recent-post-item" style="height: auto;width: 100%"><div class="blog-slider swiper-container-fade swiper-container-horizontal" id="swiper_container"><div class="blog-slider__wrp swiper-wrapper" style="transition-duration: 0ms;"><div class="blog-slider__item swiper-slide" style="width: 750px; opacity: 1; transform: translate3d(0px, 0px, 0px); transition-duration: 0ms;"><a class="blog-slider__img" onclick="pjax.loadUrl(&quot;posts/3ba5dfdb58f4.html&quot;);" href="javascript:void(0);" rel="external nofollow noreferrer" alt=""><img width="48" height="48" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/3fe27cac429733d9.png" alt="" onerror="this.src=https://unpkg.zhimg.com/akilar-candyassets/image/loading.gif; this.onerror = null;"/></a><div class="blog-slider__content"><span class="blog-slider__code">2022-02-14</span><a class="blog-slider__title" onclick="pjax.loadUrl(&quot;posts/3ba5dfdb58f4.html&quot;);" href="javascript:void(0);" rel="external nofollow noreferrer" alt="">每日 60S 早报</a><div class="blog-slider__text">🧭 每日 60 秒，读懂世界</div><a class="blog-slider__button" onclick="pjax.loadUrl(&quot;posts/3ba5dfdb58f4.html&quot;);" href="javascript:void(0);" rel="external nofollow noreferrer" alt="">详情       </a></div></div><div class="blog-slider__item swiper-slide" style="width: 750px; opacity: 1; transform: translate3d(0px, 0px, 0px); transition-duration: 0ms;"><a class="blog-slider__img" onclick="pjax.loadUrl(&quot;posts/4280e887a011.html&quot;);" href="javascript:void(0);" rel="external nofollow noreferrer" alt=""><img width="48" height="48" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/f5452888ae734a67.png" alt="" onerror="this.src=https://unpkg.zhimg.com/akilar-candyassets/image/loading.gif; this.onerror = null;"/></a><div class="blog-slider__content"><span class="blog-slider__code">2023-02-09</span><a class="blog-slider__title" onclick="pjax.loadUrl(&quot;posts/4280e887a011.html&quot;);" href="javascript:void(0);" rel="external nofollow noreferrer" alt="">Markdown语法与外挂标签写法汇总</a><div class="blog-slider__text">🥧本文汇总Markdown格式以及外挂标签在网页端的渲染效果，可作为文档进行查询</div><a class="blog-slider__button" onclick="pjax.loadUrl(&quot;posts/4280e887a011.html&quot;);" href="javascript:void(0);" rel="external nofollow noreferrer" alt="">详情       </a></div></div></div><div class="blog-slider__pagination swiper-pagination-clickable swiper-pagination-bullets"></div></div></div>';
+    // console.log('已挂载butterfly_swiper')
+    parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+    }
+  var elist = 'undefined'.split(',');
+  var cpage = location.pathname;
+  var epage = '/';
+  var flag = 0;
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_swiper_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_swiper_injector_config();
+  }
+  </script><script defer src="https://npm.elemecdn.com/hexo-butterfly-swiper/lib/swiper.min.js"></script><script defer data-pjax src="https://npm.elemecdn.com/hexo-butterfly-swiper/lib/swiper_init.js"></script><script data-pjax src="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.js"></script><script data-pjax>
+  function gitcalendar_injector_config(){
+      var parent_div_git = document.getElementById('gitZone');
+      var item_html = '<div class="recent-post-item" id="gitcalendarBar" style="width:100%;height:auto;padding:10px;"><style>#git_container{min-height: 320px}@media screen and (max-width:650px) {#git_container{min-height: 0px}}</style><div id="git_loading" style="width:10%;height:100%;margin:0 auto;display: block;"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 50 50" style="enable-background:new 0 0 50 50" xml:space="preserve"><path fill="#d0d0d0" d="M25.251,6.461c-10.318,0-18.683,8.365-18.683,18.683h4.068c0-8.071,6.543-14.615,14.615-14.615V6.461z" transform="rotate(275.098 25 25)"><animatetransform attributeType="xml" attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.6s" repeatCount="indefinite"></animatetransform></path></svg><style>#git_container{display: none;}</style></div><div id="git_container"></div></div>';
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+      console.log('已挂载gitcalendar')
+      }
+
+    if( document.getElementById('gitZone') && (location.pathname ==='/site/census/'|| '/site/census/' ==='all')){
+        gitcalendar_injector_config()
+        GitCalendarInit("/api?null",['#d9e0df', '#c6e0dc', '#a8dcd4', '#9adcd2', '#89ded1', '#77e0d0', '#5fdecb', '#47dcc6', '#39dcc3', '#1fdabe', '#00dab9'],'null')
+    }
+  </script><!-- hexo injector body_end end --></body></html>

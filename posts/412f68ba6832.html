@@ -1,0 +1,1062 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><div id="myscoll"></div><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>DNS基础以及Bind详解 | YYDS Space</title><meta name="keywords" content="DNS,Bind"><meta name="author" content="YYDS Space"><meta name="copyright" content="YYDS Space"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="背景：了解基本DNS原理，手动搭建DNS服务器。   一、DNS基础介绍 1. 背景 ​		DNS ( Domain Name Service) 作为一个非常让人耳熟能详的概念，可以把复杂难记的IP地址转化成为一个容易被记住域名供人们去调用，这样人们只需要记住每一个网站的域名而不需要记住非常复杂的IP地址。 1.2 FQDN ​		FQDN(Fully Qualified Domain Name)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DNS基础以及Bind详解">
+<meta property="og:url" content="https://www.yyds.space/posts/412f68ba6832.html">
+<meta property="og:site_name" content="YYDS Space">
+<meta property="og:description" content="背景：了解基本DNS原理，手动搭建DNS服务器。   一、DNS基础介绍 1. 背景 ​		DNS ( Domain Name Service) 作为一个非常让人耳熟能详的概念，可以把复杂难记的IP地址转化成为一个容易被记住域名供人们去调用，这样人们只需要记住每一个网站的域名而不需要记住非常复杂的IP地址。 1.2 FQDN ​		FQDN(Fully Qualified Domain Name)">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.niux.plus/LightPicture/2023/01/cb01aaa6a05067bb.png">
+<meta property="article:published_time" content="2021-07-18T14:51:00.000Z">
+<meta property="article:modified_time" content="2023-03-19T14:50:02.714Z">
+<meta property="article:author" content="YYDS Space">
+<meta property="article:tag" content="DNS">
+<meta property="article:tag" content="Bind">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.niux.plus/LightPicture/2023/01/cb01aaa6a05067bb.png"><link rel="shortcut icon" href="/"><link rel="canonical" href="https://www.yyds.space/posts/412f68ba6832"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://lf6-cdn-tos.bytecdntp.com/cdn/expire-1-M/font-awesome/6.0.0/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.staticfile.org/fancyapps-ui/4.0.31/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: {"limitDay":365,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":230},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdnjs.cloudflare.com/ajax/libs/flickr-justified-gallery/2.1.2/fjGallery.min.js',
+      css: 'https://cdnjs.cloudflare.com/ajax/libs/flickr-justified-gallery/2.1.2/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isAnchor: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'DNS基础以及Bind详解',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-03-19 22:50:02'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          const now = new Date()
+          const hour = now.getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else if (t === 'light') activateLightMode()
+          else activateDarkMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><link rel="stylesheet" href="https://cdn1.tianli0.top/npm/element-ui@2.15.6/packages/theme-chalk/lib/index.css"><style id="themeColor"></style><style id="rightSide"></style><style id="transPercent"></style><style id="blurNum"></style><style id="settingStyle"></style><span id="fps"></span><style id="defineBg"></style><style id="menu_shadow"></style><script src="https://www.whbblog.cn/js/jquery-latest.js"></script><svg aria-hidden="true" style="position:absolute; overflow:hidden; width:0; height:0"><symbol id="icon-sun" viewBox="0 0 1024 1024"><path d="M960 512l-128 128v192h-192l-128 128-128-128H192v-192l-128-128 128-128V192h192l128-128 128 128h192v192z" fill="#FFD878" p-id="8420"></path><path d="M736 512a224 224 0 1 0-448 0 224 224 0 1 0 448 0z" fill="#FFE4A9" p-id="8421"></path><path d="M512 109.248L626.752 224H800v173.248L914.752 512 800 626.752V800h-173.248L512 914.752 397.248 800H224v-173.248L109.248 512 224 397.248V224h173.248L512 109.248M512 64l-128 128H192v192l-128 128 128 128v192h192l128 128 128-128h192v-192l128-128-128-128V192h-192l-128-128z" fill="#4D5152" p-id="8422"></path><path d="M512 320c105.888 0 192 86.112 192 192s-86.112 192-192 192-192-86.112-192-192 86.112-192 192-192m0-32a224 224 0 1 0 0 448 224 224 0 0 0 0-448z" fill="#4D5152" p-id="8423"></path></symbol><symbol id="icon-moon" viewBox="0 0 1024 1024"><path d="M611.370667 167.082667a445.013333 445.013333 0 0 1-38.4 161.834666 477.824 477.824 0 0 1-244.736 244.394667 445.141333 445.141333 0 0 1-161.109334 38.058667 85.077333 85.077333 0 0 0-65.066666 135.722666A462.08 462.08 0 1 0 747.093333 102.058667a85.077333 85.077333 0 0 0-135.722666 65.024z" fill="#FFB531" p-id="11345"></path><path d="M329.728 274.133333l35.157333-35.157333a21.333333 21.333333 0 1 0-30.165333-30.165333l-35.157333 35.157333-35.114667-35.157333a21.333333 21.333333 0 0 0-30.165333 30.165333l35.114666 35.157333-35.114666 35.157334a21.333333 21.333333 0 1 0 30.165333 30.165333l35.114667-35.157333 35.157333 35.157333a21.333333 21.333333 0 1 0 30.165333-30.165333z" fill="#030835" p-id="11346"></path></symbol></svg><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><!-- hexo injector head_end start --><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-swiper/lib/swiper.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-swiper/lib/swiperstyle.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/font-awesome-animation.min.css" media="defer" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/tag_plugins.css" media="defer" onload="this.media='all'"><script src="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/carousel-touch.js"></script><!-- hexo injector head_end end --><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="YYDS Space" type="application/atom+xml">
+</head><body><div id="loading-box" onclick="document.getElementById(&quot;loading-box&quot;).classList.add(&quot;loaded&quot;)"><div class="loading-bg"><div class="loading-img"></div><div class="loading-image-dot"></div></div></div><div id="web_bg"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.whbblog.cn/other/touxiang.jpg" onerror="onerror=null;src='/assets/r1.jpg'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">92</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">119</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-a-homeliving"></use></svg><span class="menu_word" style="font-size:17px"> 首页</span></a></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-anquan"></use></svg><span class="menu_word" style="font-size:17px"> 负载均衡</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/F5/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-slbfuzaijunhengSLB">                   </use></svg><span class="menu_word" style="font-size:17px"> F5</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/nginx/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-nginx">                   </use></svg><span class="menu_word" style="font-size:17px"> NGINX</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/haproxy/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-daililiebiaoICO">                   </use></svg><span class="menu_word" style="font-size:17px"> HAProxy</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/lvs/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-slbfuzaijunheng1">                   </use></svg><span class="menu_word" style="font-size:17px"> LVS</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-yun"></use></svg><span class="menu_word" style="font-size:17px"> Cloud</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/tcpip/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-wangluo">                   </use></svg><span class="menu_word" style="font-size:17px"> TCP/IP</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/docker/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-jingyu">                   </use></svg><span class="menu_word" style="font-size:17px"> Docker</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/openstack/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-icon_openstack">                   </use></svg><span class="menu_word" style="font-size:17px"> Openstack</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/k8s/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-chuanduo">                   </use></svg><span class="menu_word" style="font-size:17px"> Kubernetes</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/linux/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-linux">                   </use></svg><span class="menu_word" style="font-size:17px"> Linux</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-bug"></use></svg><span class="menu_word" style="font-size:17px"> 测试</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/%E6%B5%8B%E8%AF%95%E5%9F%BA%E7%A1%80/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shuji">                   </use></svg><span class="menu_word" style="font-size:17px"> 测试基础</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/python/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-python">                   </use></svg><span class="menu_word" style="font-size:17px"> Python</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%8B%E8%AF%95/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-ceshi">                   </use></svg><span class="menu_word" style="font-size:17px"> 自动化测试</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-qita"></use></svg><span class="menu_word" style="font-size:17px"> 其他</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/hexo/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-hexo">                   </use></svg><span class="menu_word" style="font-size:17px"> Hexo</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/website/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shujuzhanshi">                   </use></svg><span class="menu_word" style="font-size:17px"> 建站</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/%E6%9D%82%E9%A1%B9/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-fenleiorguangchangorqitatianchong">                   </use></svg><span class="menu_word" style="font-size:17px"> 杂项</span></a></li><li><a class="site-page child faa-parent animated-hover" target="_blank" rel="noopener external nofollow noreferrer" href="https://news.yyds.space/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-love-sign">                   </use></svg><span class="menu_word" style="font-size:17px"> 早报</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shejiaoxinxi"></use></svg><span class="menu_word" style="font-size:17px"> 社交</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/social/fcircle/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-pengyouquan">                   </use></svg><span class="menu_word" style="font-size:17px"> 朋友圈</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/comments/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-liuyan">                   </use></svg><span class="menu_word" style="font-size:17px"> 留言板</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/social/link/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-lianjie">                   </use></svg><span class="menu_word" style="font-size:17px"> 友情链接</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-wangye"></use></svg><span class="menu_word" style="font-size:17px"> 网站</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/archives/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-guidang1">                   </use></svg><span class="menu_word" style="font-size:17px"> 归档</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/tags/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-sekuaibiaoqian">                   </use></svg><span class="menu_word" style="font-size:17px"> 标签</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon--tongjibiao">                   </use></svg><span class="menu_word" style="font-size:17px"> 分类</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/site/echarts/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shujutongji1">                   </use></svg><span class="menu_word" style="font-size:17px"> 统计</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-maoliang"></use></svg><span class="menu_word" style="font-size:17px"> 个人</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/personal/time/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-xianxingshalou">                   </use></svg><span class="menu_word" style="font-size:17px"> 网站事件</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/personal/nav/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-zhifengche">                   </use></svg><span class="menu_word" style="font-size:17px"> 网址导航</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/personal/about/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-paperplane">                   </use></svg><span class="menu_word" style="font-size:17px"> 关于站长</span></a></li></ul></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">YYDS Space</a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page faa-parent animated-hover" href="/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-a-homeliving"></use></svg><span class="menu_word" style="font-size:17px"> 首页</span></a></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-anquan"></use></svg><span class="menu_word" style="font-size:17px"> 负载均衡</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/F5/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-slbfuzaijunhengSLB">                   </use></svg><span class="menu_word" style="font-size:17px"> F5</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/nginx/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-nginx">                   </use></svg><span class="menu_word" style="font-size:17px"> NGINX</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/haproxy/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-daililiebiaoICO">                   </use></svg><span class="menu_word" style="font-size:17px"> HAProxy</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/lvs/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-slbfuzaijunheng1">                   </use></svg><span class="menu_word" style="font-size:17px"> LVS</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-yun"></use></svg><span class="menu_word" style="font-size:17px"> Cloud</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/tcpip/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-wangluo">                   </use></svg><span class="menu_word" style="font-size:17px"> TCP/IP</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/docker/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-jingyu">                   </use></svg><span class="menu_word" style="font-size:17px"> Docker</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/openstack/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-icon_openstack">                   </use></svg><span class="menu_word" style="font-size:17px"> Openstack</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/k8s/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-chuanduo">                   </use></svg><span class="menu_word" style="font-size:17px"> Kubernetes</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/linux/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-linux">                   </use></svg><span class="menu_word" style="font-size:17px"> Linux</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-bug"></use></svg><span class="menu_word" style="font-size:17px"> 测试</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/%E6%B5%8B%E8%AF%95%E5%9F%BA%E7%A1%80/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shuji">                   </use></svg><span class="menu_word" style="font-size:17px"> 测试基础</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/python/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-python">                   </use></svg><span class="menu_word" style="font-size:17px"> Python</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%8B%E8%AF%95/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-ceshi">                   </use></svg><span class="menu_word" style="font-size:17px"> 自动化测试</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-qita"></use></svg><span class="menu_word" style="font-size:17px"> 其他</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/categories/hexo/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-hexo">                   </use></svg><span class="menu_word" style="font-size:17px"> Hexo</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/website/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shujuzhanshi">                   </use></svg><span class="menu_word" style="font-size:17px"> 建站</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/%E6%9D%82%E9%A1%B9/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-fenleiorguangchangorqitatianchong">                   </use></svg><span class="menu_word" style="font-size:17px"> 杂项</span></a></li><li><a class="site-page child faa-parent animated-hover" target="_blank" rel="noopener external nofollow noreferrer" href="https://news.yyds.space/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-love-sign">                   </use></svg><span class="menu_word" style="font-size:17px"> 早报</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shejiaoxinxi"></use></svg><span class="menu_word" style="font-size:17px"> 社交</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/social/fcircle/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-pengyouquan">                   </use></svg><span class="menu_word" style="font-size:17px"> 朋友圈</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/comments/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-liuyan">                   </use></svg><span class="menu_word" style="font-size:17px"> 留言板</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/social/link/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-lianjie">                   </use></svg><span class="menu_word" style="font-size:17px"> 友情链接</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-wangye"></use></svg><span class="menu_word" style="font-size:17px"> 网站</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/archives/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-guidang1">                   </use></svg><span class="menu_word" style="font-size:17px"> 归档</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/tags/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-sekuaibiaoqian">                   </use></svg><span class="menu_word" style="font-size:17px"> 标签</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/categories/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon--tongjibiao">                   </use></svg><span class="menu_word" style="font-size:17px"> 分类</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/site/echarts/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-shujutongji1">                   </use></svg><span class="menu_word" style="font-size:17px"> 统计</span></a></li></ul></div><div class="menus_item"><a class="site-page group faa-parent animated-hover hide" href="javascript:void(0);" rel="external nofollow noreferrer"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-maoliang"></use></svg><span class="menu_word" style="font-size:17px"> 个人</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child faa-parent animated-hover" href="/personal/time/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-xianxingshalou">                   </use></svg><span class="menu_word" style="font-size:17px"> 网站事件</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/personal/nav/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-zhifengche">                   </use></svg><span class="menu_word" style="font-size:17px"> 网址导航</span></a></li><li><a class="site-page child faa-parent animated-hover" href="/personal/about/"><svg class="menu_icon faa-tada" aria-hidden="true" style="width:1.30em;height:1.30em;vertical-align:-0.15em;fill:currentColor;overflow:hidden;"><use xlink:href="#icon-paperplane">                   </use></svg><span class="menu_word" style="font-size:17px"> 关于站长</span></a></li></ul></div></div><center id="name-container"><a id="page-name" href="javascript:scrollToTop()" rel="external nofollow noreferrer">PAGE_NAME</a></center><div id="nav-right"><div id="search-button"><a class="search faa-parent animated-hover" title="检索站内任何你想要的信息"><svg class="faa-tada icon" style="height:24px;width:24px;fill:currentColor;position:relative;top:6px" aria-hidden="true"><use xlink:href="#icon-valentine_-search-love-find-heart"></use></svg><span> 搜索</span></a></div><a class="meihua faa-parent animated-hover" onclick="toggleWinbox()" title="美化设置-自定义你的风格" id="meihua-button"><svg class="faa-tada icon" style="height:26px;width:26px;fill:currentColor;position:relative;top:8px" aria-hidden="true"><use xlink:href="#icon-tupian1"></use></svg></a><a class="sun_moon faa-parent animated-hover" onclick="switchNightMode()" title="浅色和深色模式转换" id="nightmode-button"><svg class="faa-tada" style="height:25px;width:25px;fill:currentColor;position:relative;top:7px" viewBox="0 0 1024 1024"><use id="modeicon" xlink:href="#icon-moon">       </use></svg></a><div id="toggle-menu"><a><i class="fas fa-bars fa-fw"></i></a></div></div></div></nav><div id="post-info"><h1 class="post-title">DNS基础以及Bind详解</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><svg class="meta_icon post-meta-icon" style="width:30px;height:30px;position:relative;top:10px"><use xlink:href="#icon-rili"></use></svg><span class="post-meta-label">发表于 </span><time class="post-meta-date-created" datetime="2021-07-18T14:51:00.000Z" title="发表于 2021-07-18 22:51:00">2021-07-18</time><span class="post-meta-separator">|</span><svg class="meta_icon post-meta-icon" style="width:18px;height:18px;position:relative;top:5px"><use xlink:href="#icon-gengxin1"></use></svg><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2023-03-19T14:50:02.714Z" title="更新于 2023-03-19 22:50:02">2023-03-19</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><svg class="meta_icon post-meta-icon" style="width:18px;height:18px;position:relative;top:5px"><use xlink:href="#icon-biaoqian"></use></svg><a class="post-meta-categories" href="/categories/tcpip/">tcpip</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><svg class="meta_icon post-meta-icon" style="width:25px;height:25px;position:relative;top:8px"><use xlink:href="#icon-charuword"></use></svg><span class="post-meta-label">字数总计:</span><span class="word-count">1.1w</span><span class="post-meta-separator">|</span><svg class="meta_icon post-meta-icon" style="width:20px;height:20px;position:relative;top:5px"><use xlink:href="#icon-shizhong"></use></svg><span class="post-meta-label">阅读时长:</span><span>49分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="DNS基础以及Bind详解"><svg class="meta_icon post-meta-icon" style="width:25px;height:25px;position:relative;top:5px"><use xlink:href="#icon-eye"></use></svg><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><p><strong>背景：了解基本DNS原理，手动搭建DNS服务器。</strong></p>
+<hr>
+<p><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.whbblog.cn/usr/uploads/2021/07/3637832841.png" alt="dns思维.png"></p>
+<h2 id="一、DNS基础介绍">一、DNS基础介绍</h2>
+<h3 id="1-背景">1. 背景</h3>
+<p>​		DNS ( Domain Name Service) 作为一个非常让人耳熟能详的概念，可以把复杂难记的IP地址转化成为一个容易被记住域名供人们去调用，这样人们只需要记住每一个网站的域名而不需要记住非常复杂的IP地址。</p>
+<h3 id="1-2-FQDN">1.2 FQDN</h3>
+<p>​		FQDN(Fully Qualified Domain Name) 完全合格域名/全程域名，即域名可以通过DNS进行解析，其公式 FQDN = HostName + Domain。</p>
+<p>​		这门技术解决了一个多个主机的问题，一个网站或者服务器集群一般都是有多个主机一起协作的，比如说包括正向代理服务器、反向代理服务器、Web服务器、Email服务器、OA服务器、FTP服务器等等，这个时候就涉及是不是需不需要为每一个主机申请一个域名。 有了这个技术之后每一个主机都可以自己申请一个 <code>Hostname</code> 来区别于其他的主机，这个时候就只需要一个域名就可以做到管理所有的主机。</p>
+<p>​		比如我申请了一个域名: <code>doheras.com</code></p>
+<p>​		现在我有两个服务器需要用到这个域名，一个 FTP服务器，一个Web服务器，这两个服务器都需要用到 <code>doheras.com</code>这个域名，根据公式，我们知道可以采用 <code>hostname</code> 的方式来访问不同的主机：</p>
+<p>​		Web 服务器: <code>web.doheras.com</code></p>
+<p>​		FTP 服务器: <code>ftp.doheras.com</code></p>
+<p>​		因此， FQDN 服务可以简化在服务和应用中的配置流程，提高配置文件的可维护性。</p>
+<p>​		在配置DNS的过程中，因为服务端的工作在UDP协议端口53上，DNS需要FQDN提供正向解析 （FQDN --&gt; IP）以及反向解析 (IP --&gt; FQDN) 的服务。</p>
+<h3 id="1-3-DNS-域">1.3 DNS 域</h3>
+<h4 id="1-3-1-域名结构">1.3.1 域名结构</h4>
+<p><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.whbblog.cn/usr/uploads/2021/07/1839069916.png" alt="dns域名结构.png"></p>
+<p><strong>（1）根域</strong></p>
+<p>​		根（root）域就是“.”它是由Inetnet名字注册授权机构管理，该机构把域名空间各部分的管理责任分配连接到Internet的各个组织 。</p>
+<p><strong>（2）顶级域</strong></p>
+<p>​		又称一级域，其中顶级域名分为：国家顶级域名、通用顶级域名、反向域名。</p>
+<table>
+<thead>
+<tr>
+<th>顶级域</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>国家顶级域名</td>
+<td>中国:cn， 美国:us，英国uk…</td>
+</tr>
+<tr>
+<td>通用顶级域名</td>
+<td>com公司企业，edu教育机构，gov政府部门，int国际组织，mil军事部门 ，net网络，org非盈利组织…</td>
+</tr>
+<tr>
+<td>反向域名</td>
+<td>arpa，用于PTR查询（IP地址转换为域名）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>（3）二级域</strong></p>
+<p>​		二级域注册到个人、组织或公司的名称。这些名称基于相应的顶级域，二级域下可以包括主机和子域。</p>
+<p><strong>（4）子域</strong></p>
+<p>​		子域：已注册的二级域名派生的域名，一般就是网站名，<a target="_blank" rel="noopener external nofollow noreferrer" href="http://xn--www-uc0ep96b.test.com">例如www.test.com</a>。</p>
+<p><strong>（5）主机域</strong></p>
+<p>​		主机名在域名空间结构的最底层，主机名和前面讲的域名结合构成FQDN（完全合格的域名），主机名是FQDN的最左端。</p>
+<h4 id="1-3-2-域名服务器">1.3.2 域名服务器</h4>
+<p>​		域名是分层结构，域名服务器也是对应的层级结构。有了域名结构，还需要遍及全世界的域名服务器去解析域名，域名服务器实际上就是装有域名系统的主机。</p>
+<table>
+<thead>
+<tr>
+<th>分类</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>根域名服务器</td>
+<td>最高层次的域名服务器，本地域名服务器解析不了的域名就会向其求助，从根域名服务器进行域名解析。</td>
+</tr>
+<tr>
+<td>顶级域名服务器</td>
+<td>负责管理在该顶级域名服务器下注册的二级域名。</td>
+</tr>
+<tr>
+<td>权限域名服务器</td>
+<td>负责一个区的域名解析工作。</td>
+</tr>
+<tr>
+<td>本地域名服务器</td>
+<td>当一个主机发出DNS查询请求时，这个查询请求首先发给本地域名服务器。</td>
+</tr>
+</tbody>
+</table>
+<p>注：一个域名服务器所负责的范围，或者说有管理权限的范围，就称为区，我们需要注意的是：</p>
+<ul>
+<li>
+<p>每个层的域名上都有自己的域名服务器，最顶层的是根域名服务器。</p>
+</li>
+<li>
+<p>每一级域名服务器都知道下级域名服务器的IP地址。</p>
+</li>
+<li>
+<p>为了容灾, 每一级至少设置两个或以上的域名服务器。</p>
+</li>
+</ul>
+<h4 id="1-3-3-域名规则">1.3.3 域名规则</h4>
+<ul>
+<li>域名是大小写无关的。</li>
+<li>各组成部分的名字最多有63个字符长，整个路径不超过255个字符。</li>
+<li>没有规则限制同时在两个或多个顶级域名下的注册（例如：<a target="_blank" rel="noopener external nofollow noreferrer" href="http://sony.com">sony.com</a> 或 <a target="_blank" rel="noopener external nofollow noreferrer" href="http://sony.nl">sony.nl</a>）。</li>
+<li>每个域自己控制它下面的域（子域）的划分（例如：日本的 <a target="_blank" rel="noopener external nofollow noreferrer" href="http://ac.jp">ac.jp</a> 和 <a target="_blank" rel="noopener external nofollow noreferrer" href="http://co.jp">co.jp</a> 分别对应于 edu 和 com，而荷兰却不这样区分，它把所有的都放在nl之下）。</li>
+<li>要创建一个新的域，创建者必须得到该新域的上级域的许可，一旦创建成功，该新域就可创建子域，无需征得上级域的同意。</li>
+<li>域名遵循的是组织的边界而不是物理网络的边界。</li>
+</ul>
+<h2 id="二、DNS解析">二、DNS解析</h2>
+<h3 id="2-1-DNS解析顺序">2.1 DNS解析顺序</h3>
+<p><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.whbblog.cn/usr/uploads/2021/07/3061842059.png" alt="解析顺序.png"></p>
+<h3 id="2-2-递归查询和迭代查询">2.2 递归查询和迭代查询</h3>
+<p>（1）递归查询：本机向本地域名服务器发出一次查询请求，就静待最终的结果。如果本地域名服务器无法解析，自己会以DNS客户机的身份向其它域名服务器查询，直到得到最终的IP地址告诉本机<br>
+（2）迭代查询：本地域名服务器向根域名服务器查询，根域名服务器告诉它下一步到哪里去查询，然后它再去查，每次它都是以客户机的身份去各个服务器查询。</p>
+<p>​		通俗地说，递归就是把一件事情交给别人，如果事情没有办完，哪怕已经办了很多，都不要把结果告诉我，我要的是你的最终结果，而不是中间结果；如果你没办完，请你找别人办完。<br>
+​		迭代则是我交给你一件事，你能办多少就告诉我你办了多少，然后剩下的事情就由我来办。</p>
+<h2 id="三、bind9">三、bind9</h2>
+<h3 id="3-1-基本环境与安装">3.1 基本环境与安装</h3>
+<p>环境：</p>
+<ul>
+<li>192.168.10.222 	<a target="_blank" rel="noopener external nofollow noreferrer" href="http://dns1.host.com">dns1.host.com</a>	主dns服务器</li>
+</ul>
+<p>软件版本：</p>
+<ul>
+<li>
+<p>CentOS 7</p>
+</li>
+<li>
+<p>Bind 9</p>
+</li>
+</ul>
+<h3 id="使用yum安装BIND9">使用yum安装BIND9</h3>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">yum install -y bind</span><br><span class="line">==========================================================================================</span><br><span class="line">Package  Arch        Version                     Repository    Size</span><br><span class="line">==========================================================================================</span><br><span class="line">bind     x86_64      32:9.11.4-26.P2.el7_9.5     updates       2.3 M</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="3-2-bind9-基础">3.2 bind9 基础</h3>
+<h4 id="3-2-1-bind9-主配置文件">3.2.1 bind9 主配置文件</h4>
+<p>​		默认位置为 /etc/named.conf，主配置文件格式如下所示：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">options&#123;</span><br><span class="line">     //全局选项</span><br><span class="line">&#125;</span><br><span class="line">zone　&quot;zone name&quot; &#123;</span><br><span class="line">   //定于区域</span><br><span class="line">&#125;</span><br><span class="line">logging&#123;</span><br><span class="line">    //日志文件</span><br><span class="line">&#125;</span><br><span class="line">include：加载别的文件</span><br></pre></td></tr></table></figure>
+<p>主配置文件详解如下所示：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">named.conf主配置文件参数详解</span></span><br><span class="line"> </span><br><span class="line">//全局配置段</span><br><span class="line">options &#123;</span><br><span class="line">        listen-on port 53 &#123; 192.168.10.222; &#125;; #设置通信的网段，这里建议使用本机IP，并非127.0.0.1</span><br><span class="line">        listen-on-v6 port 53 &#123; ::1; &#125;; #监听bind端口</span><br><span class="line">        directory       &quot;/var/named&quot;;  #指定区域文件存放路径</span><br><span class="line">        dump-file       &quot;/var/named/data/cache_dump.db&quot;; #设置当执行rndc dumpdb命令后导出文件存放路径</span><br><span class="line">        statistics-file &quot;/var/named/data/named_stats.txt&quot;;</span><br><span class="line">        memstatistics-file &quot;/var/named/data/named_mem_stats.txt&quot;; #服务器输出的内存使用统计文件名</span><br><span class="line">        recursing-file  &quot;/var/named/data/named.recursing&quot;;</span><br><span class="line">        secroots-file   &quot;/var/named/data/named.secroots&quot;;</span><br><span class="line">        allow-query     &#123; any; &#125;;  #允许查询来源(这里建议修改为IP地址，localhost代表只允许本机查询) any代表所有网段</span><br><span class="line">        allow-transfer &#123; none; &#125; #允许查询的网段</span><br><span class="line">        recursion yes; #是否开启递归查询</span><br><span class="line">        dnssec-enable yes; #是否支持DNSSEC开关</span><br><span class="line">        dnssec-validation yes; #是否开启dnssec确认开关</span><br><span class="line">        bindkeys-file &quot;/etc/named.root.key&quot;;</span><br><span class="line">        managed-keys-directory &quot;/var/named/dynamic&quot;;</span><br><span class="line">        pid-file &quot;/run/named/named.pid&quot;;</span><br><span class="line">        session-keyfile &quot;/run/named/session.key&quot;;</span><br><span class="line">&#125;;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">//日志配置段</span><br><span class="line">logging &#123;</span><br><span class="line">        channel default_debug &#123;         </span><br><span class="line">                file &quot;data/named.run&quot;;</span><br><span class="line">                severity dynamic;</span><br><span class="line">        &#125;;</span><br><span class="line"><span class="meta prompt_">  #</span><span class="language-bash">本段参数解释，将日志写入工作目录下的named.run文件。注意：如果服务器用-f参数启动，则named.run会被stderr所代替，severity 按照服务器当前Debug级别记录日志</span></span><br><span class="line"><span class="meta prompt_">  #</span><span class="language-bash"><span class="built_in">bind</span>日志可以写到很多地方，具体写入方式可以参考https://blog.csdn.net/zhu_tianwei/article/details/45103455</span></span><br><span class="line">&#125;;</span><br><span class="line"> </span><br><span class="line">//区域配置段</span><br><span class="line">zone &quot;.&quot; IN &#123;             #.代表根域</span><br><span class="line">        type hint;       #代表根服务器，除hint还有master 代表主域名服务器，slave代表辅助域名服务器，forward 代表转发服务器</span><br><span class="line">        file &quot;named.ca&quot;;  #域信息源数据库信息文件名</span><br><span class="line">&#125;;</span><br><span class="line"> </span><br><span class="line">include &quot;/etc/named.rfc1912.zones&quot;;   #区域管理文件(包含资源记录、宏定义和注释)</span><br><span class="line">                                      #通常定义在/var/named目录下且以.zone结尾</span><br><span class="line">include &quot;/etc/named.root.key&quot;;</span><br></pre></td></tr></table></figure>
+<h4 id="3-2-2-bind9-常用基本命令">3.2.2 bind9 常用基本命令</h4>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">检查配置文件</span></span><br><span class="line">named-checkconf</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">启动bind9</span></span><br><span class="line">systemctl start named</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">检查bind9服务状态</span></span><br><span class="line">systemctl status named</span><br></pre></td></tr></table></figure>
+<h4 id="3-2-3-bind9-区域配置文件">3.2.3 bind9 区域配置文件</h4>
+<p>​		区域配置文件默认为 /etc/named.rfc1912.zones ,也可以放置在自定义的文件中，在/etc/named.conf里include进来。格式如下所示：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">zone &quot;.&quot; IN &#123;</span><br><span class="line">        type master|slave|hint;  	//自定义区域类型</span><br><span class="line">        file path/to/zonefile;		//绝对或相对路径</span><br><span class="line">        allow-update &#123; ip | acl &#125;；	//是否允许动态更新</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">master:表示定义的是主域名服务器</span><br><span class="line">slave :表示定义的是辅助域名服务器</span><br><span class="line">hint:表示是互联网中根域名服务器</span><br></pre></td></tr></table></figure>
+<p>**allow-update acl分为以下五种</p>
+<ul>
+<li>any：任何主机</li>
+<li>none：没有主机</li>
+<li>localhost：本机</li>
+<li>localnet：本地子网所有IP</li>
+</ul>
+<ul>
+<li>
+<p>自定义acl</p>
+<p>其中自定义acl可以分为两种，一种是简单acl 一种是复杂acl（可嵌套简单acl），示例如下：</p>
+</li>
+</ul>
+<p>简单acl</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">acl &quot;someips&quot; &#123;                               //定义一个名为someips的ACL  </span><br><span class="line">  10.0.0.1; 192.168.23.1; 192.168.23.15;      //包含3个单个IP  </span><br><span class="line"> &#125;;</span><br></pre></td></tr></table></figure>
+<p>复杂acl</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">acl &quot;complex&quot; &#123;             //定义一个名为complex的ACL  </span><br><span class="line">  &quot;someips&quot;;                //可以嵌套包含其他ACL  </span><br><span class="line">  10.0.15.0/24;             //包含10.0.15.0子网中的所有IP  </span><br><span class="line">  !10.0.16.1/24;            //非10.0.16.1子网的IP  </span><br><span class="line">  &#123;10.0.17.1;10.0.18.2;&#125;;   //包含了一个IP组  </span><br><span class="line">  localhost；               //本地网络接口IP（含实际接口IP和127.0.0.1）  </span><br><span class="line"> &#125;;</span><br></pre></td></tr></table></figure>
+<p>acl使用示例：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">allow-update &#123; &quot;someips&quot;; &#125;;</span><br><span class="line">allow-transfer &#123; &quot;complex&quot;; &#125;;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>这里自定义了一个host.com的主机域，区域的配置范例如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">zone &quot;host.com&quot; IN &#123;</span><br><span class="line">        type  master;</span><br><span class="line">        file  &quot;host.com.zone&quot;;</span><br><span class="line">        allow-update &#123; 192.168.10.222;192.168.10.223; &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<h4 id="3-2-4-区域数据库文件">3.2.4 区域数据库文件</h4>
+<ul>
+<li>
+<p>区域数据库文件有且仅有资源记录、宏定义和注释。</p>
+</li>
+<li>
+<p>通常定义在/var/named目录下且以.zone结尾，属主root，属组named，权限640。</p>
+</li>
+</ul>
+<h5 id="3-2-4-1-资源记录-Resource-Records">3.2.4.1 资源记录(Resource Records)</h5>
+<ul>
+<li>每个域，无论是单主机域还是顶级域，都可以有一组跟它相关联的资源记录</li>
+<li>当一个解析器把域名传递给DNS时，DNS所返回的是与该域名相关联的资源记录</li>
+<li>DNS的主要功能就是将域名映射到资源记录上</li>
+</ul>
+<p>资源记录格式：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">name [ttl(缓存时间)] IN 资源记录类型（RRtype）  Value</span><br></pre></td></tr></table></figure>
+<p>一个资源记录包括5个部分：</p>
+<table>
+<thead>
+<tr>
+<th>资源记录</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>域名</td>
+<td>Domain Name</td>
+</tr>
+<tr>
+<td>生存周期</td>
+<td>Time to Live</td>
+</tr>
+<tr>
+<td>类别</td>
+<td>Class</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>Type</td>
+</tr>
+<tr>
+<td>值</td>
+<td>Value</td>
+</tr>
+</tbody>
+</table>
+<p>①域名：指出这条记录适用于哪个域</p>
+<p>通常，每个域有多条记录，而数据库则保存了多个域的信息<br>
+域名字段是匹配查询条件的主要关键字<br>
+记录在数据库中的顺序是无关紧要的</p>
+<p>②生存时间：指示该条记录的稳定程度</p>
+<p>极稳定的信息会被分配一个很大的值，如 86400 （一天时间的秒数）<br>
+非常不稳定的信息会被分配一个很小的值，如60（1分钟）</p>
+<p>③类别：对于互联网信息，它总是 IN</p>
+<p>④类型：指出了这是什么类型的记录</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">资源记录类型</th>
+<th style="text-align:left">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">SOA</td>
+<td style="text-align:left">授权资源记录 SOA 的开始启动每个区域文件，并指示名称服务器是特定区域的最佳信息来源。SOA 记录表明名称服务器对区域具有权威性。每个区域必须恰好有一个 SOA 记录。与其他资源记录不同，只有在创建新的主区域文件时才创建 SOA 记录。</td>
+</tr>
+<tr>
+<td style="text-align:left">A</td>
+<td style="text-align:left">地址记录或 A 记录列出给定主机名的 IP 地址。name 字段是主机名，address 是网络接口地址。机器的每个 IP 地址应该有一个 A 记录。</td>
+</tr>
+<tr>
+<td style="text-align:left">AAAA</td>
+<td style="text-align:left">IPv6 地址记录或 AAAA 记录列出给定主机名的 128 位 IPv6 地址。</td>
+</tr>
+<tr>
+<td style="text-align:left">CNAME</td>
+<td style="text-align:left">规范名称资源记录 CNAME 指定官方或规范主机名的别名或昵称。该记录必须是唯一与别名相关联的记录。为给定地址提供一条 A 记录并使用 CNAME 记录为该地址定义别名主机名通常更容易。</td>
+</tr>
+<tr>
+<td style="text-align:left">DNAME</td>
+<td style="text-align:left">反向名称委托资源记录 DNAME 指定 IPv6 地址的反向查找。这些记录将一个域名的后缀替换为另一个。DNAME 记录指示 DNS（BIG-IP ® DNS，以前称为 GTM）（或任何 DNS 服务器）构建一个别名，用存储在 DNAME 记录中的数据替换请求的 IP 地址的一部分。</td>
+</tr>
+<tr>
+<td style="text-align:left">HINFO</td>
+<td style="text-align:left">主机信息资源记录 HINFO 包含与 BIG-IP DNS（以前称为 GTM）（或其他 DNS）相关的硬件和操作系统信息。</td>
+</tr>
+<tr>
+<td style="text-align:left">MX</td>
+<td style="text-align:left">邮件交换资源记录 MX 定义了给定域的邮件系统。</td>
+</tr>
+<tr>
+<td style="text-align:left">NAPTR</td>
+<td style="text-align:left">名称权限指针记录 NAPTR 有助于统一资源名称 (URN) 的标准化。NAPTR 记录在一组 URN、URL 和普通域名之间映射，并向客户端建议可用于与映射资源通信的协议。</td>
+</tr>
+<tr>
+<td style="text-align:left">NS</td>
+<td style="text-align:left">名称服务器资源记录 NS 定义给定域的名称服务器，创建一个委托点和一个子区域。第一个名称字段指定由名称服务器名称字段中指定的名称服务器提供服务的区域。每个区域至少需要一个名称服务器。</td>
+</tr>
+<tr>
+<td style="text-align:left">PTR</td>
+<td style="text-align:left">名称指针资源记录 PTR 将主机名与给定的 IP 地址相关联。这些记录用于反向名称查找。</td>
+</tr>
+<tr>
+<td style="text-align:left">SRV</td>
+<td style="text-align:left">服务资源记录 SRV 是一个指针，通过它可以将给定服务的别名重定向到另一个域。例如，如果虚构公司 Site Request 有一个托管在 <a target="_blank" rel="noopener external nofollow noreferrer" href="http://archive.siterequest.com">archive.siterequest.com</a> 上的 FTP 存档，IT 部门可以创建 SRV 记录，通过该记录将别名 <a target="_blank" rel="noopener external nofollow noreferrer" href="http://ftp.siterequest.com">ftp.siterequest.com</a> 重定向到 <a target="_blank" rel="noopener external nofollow noreferrer" href="http://archive.siterequest.com">archive.siterequest.com</a>。</td>
+</tr>
+<tr>
+<td style="text-align:left">TXT</td>
+<td style="text-align:left">文本资源记录 TXT 允许您提供任何信息字符串，例如服务器的位置或您希望提供的任何其他相关信息。</td>
+</tr>
+</tbody>
+</table>
+<p>常用资源记录：</p>
+<p><strong>(1) SOA记录</strong></p>
+<p>SOA: 起始授权，只能有一条</p>
+<ul>
+<li>name:只能是区域名称，通常可以简写为@，例如：<a target="_blank" rel="noopener external nofollow noreferrer" href="http://od.com">od.com</a>.</li>
+<li>value:有n个数值，最主要的是主DNS服务器的FQDN，点不可省略</li>
+</ul>
+<p>注意：SOA必须是区域数据库文件第一条记录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">@ 600 IN SOA  dns.host.com. 管理员邮箱（dnsadmin.host.com.）（</span><br><span class="line">     序列号(serial number)  ;注释内容，十进制数据，不能超过10位，通常使用日期时间戳，例如2018121601</span><br><span class="line">     刷新时间(refresh time) ;即每隔多久到主服务器检查一次</span><br><span class="line">     重试时间(retry time) 	;应该小于refresh time</span><br><span class="line">     过期时间(expire time)	;当辅助DNS服务器无法联系上主DNS服务器时，辅助DNS服务器可以在多长时间内认为其缓存是有效的，并供用户查询。</span><br><span class="line">     netgative answer ttl  ;非权威应答的ttl，缓存DNS服务器可以缓存记录多长时间</span><br><span class="line"> ）</span><br></pre></td></tr></table></figure>
+<p><strong>(2) NS记录</strong></p>
+<p>NS：可以有多条，每一个NS记录，必须对应一个A记录</p>
+<ul>
+<li>name:区域名称，通常可以简写为@</li>
+<li>value:DNS服务器的FQDN(可以使用相对名称)</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">@ 600 IN NS ns1</span><br></pre></td></tr></table></figure>
+<p><strong>(3) A记录</strong></p>
+<p>A：只能定义在正向区域数据库文件中（ipv4-&gt;FQDN）</p>
+<ul>
+<li>name:FQDN（可以使用相对名称)</li>
+<li>value:IP</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">www  600(单位s) IN A 10.4.7.11</span><br><span class="line">www  600(单位s) IN A 10.4.7.12</span><br></pre></td></tr></table></figure>
+<p>注 : 可以做轮询</p>
+<p><strong>(4) MX记录</strong></p>
+<p>MX:邮件交换记录，可以有多个（用的不多）</p>
+<ul>
+<li>name:区域名称，用于标识smtp服务器</li>
+<li>value:包含优先级和FQDN</li>
+<li>优先级:0-99，数字越小，级别越高，</li>
+</ul>
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">@<span class="number"> 600 </span>IN MX<span class="number"> 10 </span>mail</span><br><span class="line">@<span class="number"> 600 </span>IN MX<span class="number"> 20 </span>smtp</span><br></pre></td></tr></table></figure>
+<p><strong>(5) CNAME记录</strong></p>
+<p>CNAME：canonical name，别名（FQDN-&gt;FQDN）</p>
+<ul>
+<li>name ：FQDN</li>
+<li>value :  FQDN</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">eshop IN CNAME www</span><br></pre></td></tr></table></figure>
+<p>⑤值：类型所对应的值，它可以是个数字，也可以是一个ASCII的字符串</p>
+<h5 id="3-2-4-2-宏定义（以-开头的部分）">3.2.4.2 宏定义（以$开头的部分）</h5>
+<p>示例：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">TTL 60</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">ORIGIN .</span></span><br></pre></td></tr></table></figure>
+<h5 id="3-2-4-3-注释（以-开头的部分）">3.2.4.3 注释（以 ; 开头的部分）</h5>
+<p>示例：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">; 1 minute</span><br><span class="line">; serial</span><br></pre></td></tr></table></figure>
+<h3 id="3-3-正解域">3.3 正解域</h3>
+<h4 id="3-3-1-配置正解域">3.3.1 配置正解域</h4>
+<p><strong>（1）在/etc/named.rfc1912.zones文件内最下，添加以下内容：</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">zone &quot;host.com&quot; IN &#123;</span><br><span class="line">        type  master;</span><br><span class="line">        file  &quot;host.com.zone&quot;;</span><br><span class="line">        allow-update &#123; 192.168.10.222;192.168.10.223; &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><strong>（2）在/var/named下创建host.com.zone文件，写入以下内容：</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 600	; 10 minutes</span></span><br><span class="line">@       		IN SOA	dns.host.com. test.qq.com. (</span><br><span class="line">				2021070701 ; serial</span><br><span class="line">				10800      ; refresh (3 hours)</span><br><span class="line">				900        ; retry (15 minutes)</span><br><span class="line">				604800     ; expire (1 week)</span><br><span class="line">				86400      ; minimum (1 day)</span><br><span class="line">				)</span><br><span class="line">			NS   dns.host.com.</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">ORIGIN host.com.</span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 60	; 1 minute</span></span><br><span class="line">dns1	                 A    192.168.10.222</span><br><span class="line">dns      	       	     A    192.168.10.223</span><br></pre></td></tr></table></figure>
+<p>三种配置方式：</p>
+<ul>
+<li>用宏定义$ORIGIN . <a target="_blank" rel="noopener external nofollow noreferrer" href="http://xn--host-494ft58rnc9b.com">下面用host.com</a></li>
+<li>不用宏定义，下面用@</li>
+<li>不用宏定义，<a target="_blank" rel="noopener external nofollow noreferrer" href="http://xn--host-494ft58rnc9b.com">下面用host.com</a>.</li>
+</ul>
+<p><strong>（3）修改主配置文件/etc/named.conf</strong></p>
+<p>修改option选项以下两个字段：</p>
+<ul>
+<li>listen-on port 53 { 192.168.10.222; };   # 默认为 127.0.0.1 ；</li>
+<li>allow-query { any; };  # 默认为localhost</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">options &#123;</span><br><span class="line">        listen-on port 53 &#123; 192.168.10.222; &#125;;</span><br><span class="line">        allow-query     &#123; any; &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><strong>（4）检查配置文件是否生效</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">检查自定义区域配置</span></span><br><span class="line">named-checkzone host.com. /etc/named/host.com.zone</span><br><span class="line">zone host.com/IN: loaded serial 2021070701</span><br><span class="line">OK</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">检查主配置文件</span></span><br><span class="line">named-checkconf</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">重启named进程</span></span><br><span class="line">systemctl restart named</span><br></pre></td></tr></table></figure>
+<p><strong>（5）验证解析结果</strong></p>
+<p>在另一台设备配置dns地址为192.168.10.222，验证是否按照规定配置进行解析。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">[root@dns2 ~]# nslookup</span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">server</span></span><br><span class="line">Default server: 192.168.10.222</span><br><span class="line">Address: 192.168.10.222#53</span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">dns1.host.com</span></span><br><span class="line">Server:         192.168.10.222</span><br><span class="line">Address:        192.168.10.222#53</span><br><span class="line"></span><br><span class="line">Name:   dns1.host.com</span><br><span class="line">Address: 192.168.10.222</span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">dns.host.com</span></span><br><span class="line">Server:         192.168.10.222</span><br><span class="line">Address:        192.168.10.222#53</span><br><span class="line"></span><br><span class="line">Name:   dns.host.com</span><br><span class="line">Address: 192.168.10.223</span><br></pre></td></tr></table></figure>
+<h4 id="3-3-2-管理正解域">3.3.2 管理正解域</h4>
+<h5 id="3-3-2-1-增加资源记录">3.3.2.1 增加资源记录</h5>
+<p>在 /var/named/host.com.zone 下新增一条A记录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">[root@dns1 ~]# cat /var/named/host.com.zone</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 600        ;10 minutes</span></span><br><span class="line">@                       IN SOA  dns.host.com. test.qq.com. (</span><br><span class="line">                                2021070701 ; serial</span><br><span class="line">                                10800      ; refresh (3 hours)</span><br><span class="line">                                900        ; retry (15 minutes)</span><br><span class="line">                                604800     ; expire (1 week)</span><br><span class="line">                                86400      ; minimum (1 day)</span><br><span class="line">                                )</span><br><span class="line">                        NS   dns.host.com.</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">ORIGIN host.com.</span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 60 ; 1 minute</span></span><br><span class="line">dns1                    A    192.168.10.222</span><br><span class="line">dns                     A    192.168.10.223</span><br><span class="line">test                    A    192.168.10.55</span><br></pre></td></tr></table></figure>
+<p>测试：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">[root@dns2 ~]# nslookup</span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">server</span></span><br><span class="line">Default server: 192.168.10.222</span><br><span class="line">Address: 192.168.10.222#53</span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">test.host.com</span></span><br><span class="line">Server:         192.168.10.222</span><br><span class="line">Address:        192.168.10.222#53</span><br><span class="line"></span><br><span class="line">Name:   test.host.com</span><br><span class="line">Address: 192.168.10.55</span><br></pre></td></tr></table></figure>
+<p>删除、修改、查询 此处省略，直接修改区域数据库文件并重启named进程即可。</p>
+<h3 id="3-4-反解域">3.4 反解域</h3>
+<h4 id="3-4-1-配置反解域">3.4.1 配置反解域</h4>
+<p><strong>（1）在 /etc/named.rfc1912.zones文件内最下，添加以下内容：</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">zone &quot;10.168.192.in-addr.arpa&quot; IN &#123;</span><br><span class="line">        type master;</span><br><span class="line">        file &quot;10.168.192.in-addr.arpa.zone&quot;;</span><br><span class="line">        allow-update &#123; 192.168.10.222;192.168.10.223; &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><strong>（2）在/var/named下创建host.com.zone文件，写入以下内容：</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">[root@node1 ~]# vi /var/named/10.168.192.in-addr.arpa.zone </span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 600 ;10min</span></span><br><span class="line">@       IN      SOA     dns.host.com    17614902580@163.com (</span><br><span class="line">                        2021071101      ;serial number</span><br><span class="line">                        10600           ;refresh 3 hours</span><br><span class="line">                        900             ;retry 15 minites</span><br><span class="line">                        604800          ;expire 1 week</span><br><span class="line">                        86400           ;minimum 1 day</span><br><span class="line">                        )</span><br><span class="line">                ns      dns.host.com.</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">ORIGIN 10.168.192.in-addr.arpa.</span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 60</span></span><br><span class="line">222     PTR     dns1.host.com.</span><br><span class="line">223     PTR     dns2.host.com.</span><br></pre></td></tr></table></figure>
+<p><strong>（3）检查配置文件是否生效</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">检查自定义区域配置</span></span><br><span class="line">[root@node1 ~]# named-checkzone 10.168.192.in-addr.arpa.zone /var/named/10.168.192.in-addr.arpa.zone </span><br><span class="line">/var/named/10.168.192.in-addr.arpa.zone:12: ignoring out-of-zone data (222.10.168.192.in-addr.arpa)</span><br><span class="line">/var/named/10.168.192.in-addr.arpa.zone:13: ignoring out-of-zone data (223.10.168.192.in-addr.arpa)</span><br><span class="line">zone 10.168.192.in-addr.arpa.zone/IN: loaded serial 2021071101</span><br><span class="line">OK</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">检查主配置文件，无输出即正常。</span></span><br><span class="line">named-checkconf</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">重启named进程</span></span><br><span class="line">systemctl restart named</span><br></pre></td></tr></table></figure>
+<p><strong>（4）验证解析结果</strong></p>
+<p>在另一台设备配置验证是否按照规定配置进行解析。以下三种方式都可：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">第一种：</span><br><span class="line">root@node1 ~]# dig -x 192.168.10.222 @192.168.10.222 +short</span><br><span class="line">dns1.host.com.</span><br><span class="line">[root@node1 ~]# dig -x 192.168.10.223 @192.168.10.222 +short </span><br><span class="line">dns2.host.com.</span><br><span class="line"></span><br><span class="line">第二种：</span><br><span class="line">[root@node1 ~]# dig -t PTR 222.10.168.192.in-addr.arpa. @192.168.10.222 +short    </span><br><span class="line">dns1.host.com.</span><br><span class="line">[root@node1 ~]# dig -t PTR 223.10.168.192.in-addr.arpa. @192.168.10.222 +short </span><br><span class="line">dns2.host.com.</span><br><span class="line"></span><br><span class="line">第三种：</span><br><span class="line">[root@node1 ~]# nslookup -qt=ptr 192.168.10.222 </span><br><span class="line">*** Invalid option: qt=ptr</span><br><span class="line">222.10.168.192.in-addr.arpa     name = dns1.host.com.</span><br></pre></td></tr></table></figure>
+<h4 id="3-4-2-管理反解域">3.4.2 管理反解域</h4>
+<h5 id="3-4-2-1-增加资源记录">3.4.2.1 增加资源记录</h5>
+<p>在 10.168.192.in-addr.arpa.zone下新增一条PTR记录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">[root@node1 ~]# cat /var/named/10.168.192.in-addr.arpa.zone </span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 600 ;10min</span></span><br><span class="line">@       IN      SOA     dns.host.com    17614902580@163.com (</span><br><span class="line">                        2021071101      ;serial number</span><br><span class="line">                        10600           ;refresh 3 hours</span><br><span class="line">                        900             ;retry 15 minites</span><br><span class="line">                        604800          ;expire 1 week</span><br><span class="line">                        86400           ;minimum 1 day</span><br><span class="line">                        )</span><br><span class="line">                ns      dns.host.com.</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">ORIGIN 10.168.192.in-addr.arpa.</span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 60</span></span><br><span class="line">222     PTR     dns1.host.com.</span><br><span class="line">223     PTR     dns2.host.com.</span><br><span class="line">224     PTR     dns3.host.com.</span><br><span class="line">[root@node1 ~]# systemctl restart named</span><br></pre></td></tr></table></figure>
+<p>测试：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@node1 ~]# dig -t PTR 224.10.168.192.in-addr.arpa. @192.168.10.222 +short </span><br><span class="line">dns3.host.com.</span><br><span class="line">[root@node1 ~]# dig -x 192.168.10.224 @192.168.10.222 +short                   </span><br><span class="line">dns3.host.com.</span><br></pre></td></tr></table></figure>
+<p>删除、修改、查询 此处省略，直接修改区域数据库文件并重启named进程即可。</p>
+<h3 id="3-5-DNS-常用工具">3.5 DNS 常用工具</h3>
+<p>安装DNS常用工具：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install bind-utils -y</span><br></pre></td></tr></table></figure>
+<h4 id="3-5-1-nslookup">3.5.1 nslookup</h4>
+<p>nslookup是一个查询Internet域名服务器的程序。Nslookup有两种模式：交互式和非交互式。</p>
+<p><strong>（1）交互模式</strong></p>
+<p>交互模式允许用户查询名称服务器以获取有关各种主机和服务器的信息域或打印域中的主机列表。<br>
+命令基本格式:直接使用nslookup命令 且不带任何参数,即进入nslookup的交互式查询界面。<br>
+可以使用的命令如下:</p>
+<ul>
+<li>
+<p>Name:显示域名为NAME的域的相关信息。</p>
+</li>
+<li>
+<p>Sever NAME:设置查询默认服务器为NAME所指定的服务器。</p>
+</li>
+<li>
+<p>Exit:退出nslookup。</p>
+</li>
+</ul>
+<p>Set option :设置nslookup的选项，选项如下:</p>
+<ul>
+<li>
+<p>Domain=name :设置默认域名为name。</p>
+</li>
+<li>
+<p>Root = name :设置根服务器的NAME。</p>
+</li>
+<li>
+<p>Retry = X :设置重试次数为X。</p>
+</li>
+<li>
+<p>Timeout = X :设置超时时间为X。</p>
+</li>
+<li>
+<p>Type = X :设置查询类型。</p>
+</li>
+<li>
+<p>Querytype = X :与type命令-样。</p>
+</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">[root@node1 ~]# nslookup -qt=CNAME www.163.com</span><br><span class="line">*** Invalid option: qt=CNAME</span><br><span class="line">Server:         114.114.114.114</span><br><span class="line">Address:        114.114.114.114#53</span><br><span class="line"></span><br><span class="line">Non-authoritative answer:</span><br><span class="line">www.163.com     canonical name = www.163.com.163jiasu.com.</span><br><span class="line">www.163.com.163jiasu.com        canonical name = www.163.com.bsgslb.cn.</span><br><span class="line">www.163.com.bsgslb.cn   canonical name = z163ipv6.v.bsgslb.cn.</span><br><span class="line">Name:   z163ipv6.v.bsgslb.cn</span><br><span class="line">Address: 124.205.198.173</span><br><span class="line">Name:   z163ipv6.v.bsgslb.cn</span><br><span class="line">Address: 124.205.198.176</span><br><span class="line">Name:   z163ipv6.v.bsgslb.cn</span><br><span class="line">Address: 124.205.198.171</span><br><span class="line">Name:   z163ipv6.v.bsgslb.cn</span><br><span class="line">Address: 124.205.198.162</span><br><span class="line">Name:   z163ipv6.v.bsgslb.cn</span><br><span class="line">Address: 124.205.198.169</span><br><span class="line">Name:   z163ipv6.v.bsgslb.cn</span><br><span class="line">Address: 124.205.198.166</span><br><span class="line">Name:   z163ipv6.v.bsgslb.cn</span><br><span class="line">Address: 124.205.198.175</span><br><span class="line">Name:   z163ipv6.v.bsgslb.cn</span><br><span class="line">Address: 124.205.198.164</span><br><span class="line">Name:   z163ipv6.v.bsgslb.cn</span><br><span class="line">Address: 124.205.198.170</span><br><span class="line">Name:   z163ipv6.v.bsgslb.cn</span><br><span class="line">Address: 124.205.198.174</span><br></pre></td></tr></table></figure>
+<p>其中，type可以是以下这些类型：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>IPv4地址记录（直接查询默认类型）</td>
+</tr>
+<tr>
+<td>AAAA</td>
+<td>IPv6地址记录</td>
+</tr>
+<tr>
+<td>AFSDB</td>
+<td>Andrew文件系统数据库服务器记录</td>
+</tr>
+<tr>
+<td>ATMA</td>
+<td>ATM地址记录</td>
+</tr>
+<tr>
+<td>CNAME</td>
+<td>别名记录</td>
+</tr>
+<tr>
+<td>HINFO</td>
+<td>硬件配置记录，包括CPU、操作系统信息</td>
+</tr>
+<tr>
+<td>ISDN</td>
+<td>域名对应的ISDN号码</td>
+</tr>
+<tr>
+<td>MB</td>
+<td>存放指定邮箱的服务器</td>
+</tr>
+<tr>
+<td>MG</td>
+<td>邮件组记录</td>
+</tr>
+<tr>
+<td>MINFO</td>
+<td>邮件组和邮箱的信息记录</td>
+</tr>
+<tr>
+<td>MR</td>
+<td>改名的邮箱记录</td>
+</tr>
+<tr>
+<td>MX</td>
+<td>邮件服务器记录</td>
+</tr>
+<tr>
+<td>NS</td>
+<td>名字服务器记录</td>
+</tr>
+<tr>
+<td>PTR</td>
+<td>反向记录</td>
+</tr>
+<tr>
+<td>RP</td>
+<td>负责人记录</td>
+</tr>
+<tr>
+<td>RT</td>
+<td>路由穿透记录</td>
+</tr>
+<tr>
+<td>SRV</td>
+<td>TCP服务器信息记录</td>
+</tr>
+<tr>
+<td>TXT</td>
+<td>域名对应的文本信息</td>
+</tr>
+<tr>
+<td>X25</td>
+<td>域名对应的X.25地址记录</td>
+</tr>
+</tbody>
+</table>
+<p><strong>（2）非交互模式</strong></p>
+<p>非交互模式仅用于打印名称和请求的主机或域的信息。</p>
+<p>命令格式：nslookup [ - option] [{ name | [-server]}]</p>
+<ul>
+<li>
+<p>option 参数，具体如下:</p>
+<p>​	-timeout=X:指明系统查询的超时时间，如’-timeout = 10’表示超时时间是10秒</p>
+<p>​	-retry = X :指明系统查询失败时重试的次数。</p>
+<p>​	-querytype = X :指明查询的资源记录类型，X可以是A、PTR、 MX、NS等。</p>
+</li>
+<li>
+<p>Name :要查询的目标夫域名或IP地址。</p>
+</li>
+<li>
+<p>server :使用指定的DNS服务器解析，而非默认的DNS服务器</p>
+</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">[root@node1 ~]# nslookup www.baidu.com</span><br><span class="line">Server:         114.114.114.114</span><br><span class="line">Address:        114.114.114.114#53</span><br><span class="line"></span><br><span class="line">Non-authoritative answer:</span><br><span class="line">www.baidu.com   canonical name = www.a.shifen.com.</span><br><span class="line">Name:   www.a.shifen.com</span><br><span class="line">Address: 182.61.200.6</span><br><span class="line">Name:   www.a.shifen.com</span><br><span class="line">Address: 182.61.200.7</span><br></pre></td></tr></table></figure>
+<p><strong>（3）返回信息说明</strong></p>
+<ul>
+<li>
+<p>服务器：本机DNS服务器信息。</p>
+</li>
+<li>
+<p>非权威应答：Non-authoritative answer，除非实际存储DNS Server中获得域名解析回答的，都称为非权威应答。也就是从缓存中获取域名解析结果。</p>
+</li>
+<li>
+<p>address：目标域名对应物理IP可有多个。</p>
+</li>
+<li>
+<p>aliase：目标域名。</p>
+</li>
+</ul>
+<h4 id="3-5-2-host">3.5.2 host</h4>
+<p><strong>host命令是常用的分析域名查询工具，可以用来测试域名系统工作是否正常。</strong></p>
+<p><strong>语法格式 ： host (选项) (参数)</strong></p>
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-a</td>
+<td>显示详细的DNS信息；</td>
+</tr>
+<tr>
+<td>-c</td>
+<td>指定查询类型，默认值为“IN“；</td>
+</tr>
+<tr>
+<td>-C</td>
+<td>查询指定主机的完整的SOA记录；</td>
+</tr>
+<tr>
+<td>-r</td>
+<td>在查询域名时，不使用递归的查询方式；</td>
+</tr>
+<tr>
+<td>-t</td>
+<td>指定查询的域名信息类型；</td>
+</tr>
+<tr>
+<td>-v</td>
+<td>显示指令执行的详细信息；</td>
+</tr>
+<tr>
+<td>-w</td>
+<td>如果域名服务器没有给出应答信息，则总是等待，直到域名服务器给出应答；</td>
+</tr>
+<tr>
+<td>-W</td>
+<td>指定域名查询的最长时间，如果在指定时间内域名服务器没有给出应答信息，则退出指令；</td>
+</tr>
+<tr>
+<td>-4</td>
+<td>使用IPv4；</td>
+</tr>
+<tr>
+<td>-6</td>
+<td>使用IPv6；</td>
+</tr>
+</tbody>
+</table>
+<h4 id="3-5-3-dig">3.5.3 dig</h4>
+<p><strong>Dig是一个在类Unix命令行模式下查询DNS包括NS记录，A记录，MX记录等相关信息的工具。</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">语法格式：</span></span><br><span class="line">dig [@global-server] [domain] [q-type] [q-class] &#123;q-opt&#125;</span><br><span class="line">            &#123;global-d-opt&#125; host [@local-server] &#123;local-d-opt&#125;</span><br><span class="line">            [ host [@local-server] &#123;local-d-opt&#125; [...]]</span><br><span class="line">            </span><br><span class="line">Where:  domain    is in the Domain Name System</span><br><span class="line">        q-class  is one of (in,hs,ch,...) [default: in]</span><br><span class="line">        q-type   is one of (a,any,mx,ns,soa,hinfo,axfr,txt,...) [default:a]</span><br><span class="line">                 (Use ixfr=version for type ixfr)</span><br><span class="line">        q-opt    is one of:</span><br><span class="line">                 -4                  (use IPv4 query transport only)</span><br><span class="line">                 -6                  (use IPv6 query transport only)</span><br><span class="line">                 -b address[#port]   (bind to source address/port)</span><br><span class="line">                 -c class            (specify query class)</span><br><span class="line">                 -f filename         (batch mode)</span><br><span class="line">                 -i                  (use IP6.INT for IPv6 reverse lookups)</span><br><span class="line">                 -k keyfile          (specify tsig key file)</span><br><span class="line">                 -m                  (enable memory usage debugging)</span><br><span class="line">                 -p port             (specify port number)</span><br><span class="line">                 -q name             (specify query name)</span><br><span class="line">                 -t type             (specify query type)</span><br><span class="line">                 -u                  (display times in usec instead of msec)</span><br><span class="line">                 -x dot-notation     (shortcut for reverse lookups)</span><br><span class="line">                 -y [hmac:]name:key  (specify named base64 tsig key)</span><br><span class="line">        d-opt    is of the form +keyword[=value], where keyword is:</span><br><span class="line">                 +[no]aaflag         (Set AA flag in query (+[no]aaflag))</span><br><span class="line">                 +[no]aaonly         (Set AA flag in query (+[no]aaflag))</span><br><span class="line">                 +[no]additional     (Control display of additional section)</span><br><span class="line">                 +[no]adflag         (Set AD flag in query (default on))</span><br><span class="line">                 +[no]all            (Set or clear all display flags)</span><br><span class="line">                 +[no]answer         (Control display of answer section)</span><br><span class="line">                 +[no]authority      (Control display of authority section)</span><br><span class="line">                 +[no]badcookie      (Retry BADCOOKIE responses)</span><br><span class="line">                 +[no]besteffort     (Try to parse even illegal messages)</span><br><span class="line">                 +bufsize=###        (Set EDNS0 Max UDP packet size)</span><br><span class="line">                 +[no]cdflag         (Set checking disabled flag in query)</span><br><span class="line">                 +[no]class          (Control display of class in records)</span><br><span class="line">                 +[no]cmd            (Control display of command line)</span><br><span class="line">                 +[no]comments       (Control display of comment lines)</span><br><span class="line">                 +[no]cookie         (Add a COOKIE option to the request)</span><br><span class="line">                 +[no]crypto         (Control display of cryptographic fields in records)</span><br><span class="line">                 +[no]defname        (Use search list (+[no]search))</span><br><span class="line">                 +[no]dnssec         (Request DNSSEC records)</span><br><span class="line">                 +domain=###         (Set default domainname)</span><br><span class="line">                 +[no]dscp[=###]     (Set the DSCP value to ### [0..63])</span><br><span class="line">                 +[no]edns[=###]     (Set EDNS version) [0]</span><br><span class="line">                 +ednsflags=###      (Set EDNS flag bits)</span><br><span class="line">                 +[no]ednsnegotiation (Set EDNS version negotiation)</span><br><span class="line">                 +ednsopt=###[:value] (Send specified EDNS option)</span><br><span class="line">                 +noednsopt          (Clear list of +ednsopt options)</span><br><span class="line">                 +[no]expire         (Request time to expire)</span><br><span class="line">                 +[no]fail           (Don&#x27;t try next server on SERVFAIL)</span><br><span class="line">                 +[no]header-only    (Send query without a question section)</span><br><span class="line">                 +[no]identify       (ID responders in short answers)</span><br><span class="line">                 +[no]idnin          (Parse IDN names)</span><br><span class="line">                 +[no]idnout         (Convert IDN response)</span><br><span class="line">                 +[no]ignore         (Don&#x27;t revert to TCP for TC responses.)</span><br><span class="line">                 +[no]keepopen       (Keep the TCP socket open between queries)</span><br><span class="line">                 +[no]mapped         (Allow mapped IPv4 over IPv6)</span><br><span class="line">                 +[no]multiline      (Print records in an expanded format)</span><br><span class="line">                 +ndots=###          (Set search NDOTS value)</span><br><span class="line">                 +[no]nsid           (Request Name Server ID)</span><br><span class="line">                 +[no]nssearch       (Search all authoritative nameservers)</span><br><span class="line">                 +[no]onesoa         (AXFR prints only one soa record)</span><br><span class="line">                 +[no]opcode=###     (Set the opcode of the request)</span><br><span class="line">                 +[no]qr             (Print question before sending)</span><br><span class="line">                 +[no]question       (Control display of question section)</span><br><span class="line">                 +[no]rdflag         (Recursive mode (+[no]recurse))</span><br><span class="line">                 +[no]recurse        (Recursive mode (+[no]rdflag))</span><br><span class="line">                 +retry=###          (Set number of UDP retries) [2]</span><br><span class="line">                 +[no]rrcomments     (Control display of per-record comments)</span><br><span class="line">                 +[no]search         (Set whether to use searchlist)</span><br><span class="line">                 +[no]short          (Display nothing except short</span><br><span class="line">                                      form of answer)</span><br><span class="line">                 +[no]showsearch     (Search with intermediate results)</span><br><span class="line">                 +[no]sigchase       (Chase DNSSEC signatures)</span><br><span class="line">                 +[no]split=##       (Split hex/base64 fields into chunks)</span><br><span class="line">                 +[no]stats          (Control display of statistics)</span><br><span class="line">                 +subnet=addr        (Set edns-client-subnet option)</span><br><span class="line">                 +[no]tcp            (TCP mode (+[no]vc))</span><br><span class="line">                 +timeout=###        (Set query timeout) [5]</span><br><span class="line">                 +[no]topdown        (Do +sigchase in top-down mode)</span><br><span class="line">                 +[no]trace          (Trace delegation down from root [+dnssec])</span><br><span class="line">                 +trusted-key=####   (Trusted Key to use with +sigchase)</span><br><span class="line">                 +tries=###          (Set number of UDP attempts) [3]</span><br><span class="line">                 +[no]ttlid          (Control display of ttls in records)</span><br><span class="line">                 +[no]ttlunits       (Display TTLs in human-readable units)</span><br><span class="line">                 +[no]unknownformat  (Print RDATA in RFC 3597 &quot;unknown&quot; format)</span><br><span class="line">                 +[no]vc             (TCP mode (+[no]tcp))</span><br><span class="line">                 +[no]zflag          (Set Z flag in query)</span><br><span class="line">        global d-opts and servers (before host name) affect all queries.</span><br><span class="line">        local d-opts and servers (after host name) affect only that lookup.</span><br><span class="line">        -h                           (print help and exit)</span><br><span class="line">        -v                           (print version and exit)</span><br></pre></td></tr></table></figure>
+<p><strong>示例：</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">[root@node1 ~]# dig -t a dns.host.com @192.168.10.222 +short </span><br><span class="line">192.168.10.223</span><br><span class="line">[root@node1 ~]# dig -t a dns.host.com @192.168.10.222 </span><br><span class="line"></span><br><span class="line">; &lt;&lt;&gt;&gt; DiG 9.11.4-P2-RedHat-9.11.4-26.P2.el7_9.5 &lt;&lt;&gt;&gt; -t a dns.host.com @192.168.10.222</span><br><span class="line">;; global options: +cmd</span><br><span class="line">;; Got answer:</span><br><span class="line">;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 2013</span><br><span class="line">;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 1</span><br><span class="line"></span><br><span class="line">;; OPT PSEUDOSECTION:</span><br><span class="line">; EDNS: version: 0, flags:; udp: 4096</span><br><span class="line">;; QUESTION SECTION:</span><br><span class="line">;dns.host.com.                  IN      A</span><br><span class="line"></span><br><span class="line">;; ANSWER SECTION:</span><br><span class="line">dns.host.com.           60      IN      A       192.168.10.223</span><br><span class="line"></span><br><span class="line">;; AUTHORITY SECTION:</span><br><span class="line">host.com.               600     IN      NS      dns.host.com.</span><br><span class="line"></span><br><span class="line">;; Query time: 0 msec</span><br><span class="line">;; SERVER: 192.168.10.222#53(192.168.10.222)</span><br><span class="line">;; WHEN: Tue Jul 13 10:53:19 CST 2021</span><br><span class="line">;; MSG SIZE  rcvd: 71</span><br></pre></td></tr></table></figure>
+<h4 id="3-5-4-nsupdate">3.5.4 nsupdate</h4>
+<p>​		nsupdate是一个动态DNS更新工具，可以向DNS服务器提交更新记录的请求，它可以从区文件中添加或删除资源记录，而不需要手动进行编辑区文件。</p>
+<p>​		使用nsupdate 不会更改区域数据库文件，而是产生了一个jnl的数据文件，不能使用文本编辑器打开，只能使用完全区域数据传送查看。</p>
+<p>注：jnl文件（journal文件）是BIND9动态更新的时候记录更新内容所生成的日志文件。</p>
+<ul>
+<li>优点
+<ul>
+<li>命令简单，便于记忆</li>
+<li>不用手动变更SOA的serial序列号，自动滚动</li>
+<li>不需要重启/重载BIND9服务/配置，生效快</li>
+<li>可以通过配置acl实现远程管理</li>
+</ul>
+</li>
+<li>缺点
+<ul>
+<li>jnl文件无法使用文本文件的方式打开</li>
+<li>只能依赖完全区域传送查看所有区域的记录</li>
+<li>更新操作复杂，先删再增</li>
+<li>远程管理有安全隐患，需要加强审计</li>
+<li>动态域在rndc管理上多一步</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">发送请求到servername服务器的port端口.如果不指定servername,nsupdate将把请求发送给当前去的主DNS服务器.</span></span><br><span class="line">server servername [ port ]</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">添加一条资源记录</span></span><br><span class="line">update add domain-name ttl [ class ] type data…</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">删除domain-name的资源记录.如果指定了<span class="built_in">type</span>和data,仅删除匹配的记录。</span></span><br><span class="line">update delete domain-name [ ttl ] [ class ] [ type [ data... ] ]</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">将要求信息和更新请求发送到DNS服务器.等同于输入一个空行</span></span><br><span class="line">send</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">退出nsupdate工具</span></span><br><span class="line">quit</span><br></pre></td></tr></table></figure>
+<p>示例：在host.com域添加A记录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">前提条件：允许设备动态修改配置，将以下参数修改为any或者指定ip。</span></span><br><span class="line">allow-update &#123; any; &#125;;</span><br><span class="line"></span><br><span class="line">添加记录</span><br><span class="line"></span><br><span class="line">[root@dns1 ~]# nsupdate</span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">server 192.168.10.222</span></span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">update add aaa.host.com 600 IN A 192.168.10.224</span></span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">send</span></span><br><span class="line"><span class="meta prompt_">&gt; </span><span class="language-bash">quit</span> </span><br></pre></td></tr></table></figure>
+<p>查看测试结果：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">[root@dns2 ~]# dig -t AXFR host.com @192.168.10.222</span><br><span class="line"></span><br><span class="line">; &lt;&lt;&gt;&gt; DiG 9.11.4-P2-RedHat-9.11.4-26.P2.el7_9.5 &lt;&lt;&gt;&gt; -t AXFR host.com @192.168.10.222</span><br><span class="line">;; global options: +cmd</span><br><span class="line">host.com.               600     IN      SOA     dns.host.com. test.qq.com. 2021070706 10800 900 604800 86400</span><br><span class="line">host.com.               600     IN      NS      dns.host.com.</span><br><span class="line">aaa.host.com.           600     IN      A       192.168.10.224</span><br><span class="line">dns.host.com.           60      IN      A       192.168.10.222</span><br><span class="line">dns1.host.com.          60      IN      A       192.168.10.222</span><br><span class="line">dns2.host.com.          60      IN      A       192.168.10.223</span><br><span class="line">test.host.com.          60      IN      A       192.168.10.55</span><br><span class="line">host.com.               600     IN      SOA     dns.host.com. test.qq.com. 2021070706 10800 900 604800 86400</span><br><span class="line">;; Query time: 0 msec</span><br><span class="line">;; SERVER: 192.168.10.222#53(192.168.10.222)</span><br><span class="line">;; WHEN: Fri Jul 16 10:09:54 CST 2021</span><br><span class="line">;; XFR size: 8 records (messages 1, bytes 234)</span><br></pre></td></tr></table></figure>
+<h3 id="3-6-DNS-主辅同步">3.6 DNS 主辅同步</h3>
+<h4 id="3-6-1主辅同步配置">3.6.1主辅同步配置</h4>
+<p><strong>环境准备：</strong></p>
+<ul>
+<li>
+<p>192.168.10.222 	<a target="_blank" rel="noopener external nofollow noreferrer" href="http://dns1.host.com">dns1.host.com</a>	主dns服务器</p>
+</li>
+<li>
+<p>192.168.10.223 	<a target="_blank" rel="noopener external nofollow noreferrer" href="http://dns2.host.com">dns2.host.com</a>    辅dns服务器</p>
+</li>
+</ul>
+<p><strong>软件版本：</strong></p>
+<ul>
+<li>
+<p>CentOS 7</p>
+</li>
+<li>
+<p>Bind 9</p>
+</li>
+</ul>
+<p><strong>配置要点：</strong></p>
+<ul>
+<li>辅助DNS的Bind版本必须小于主DNS的软件版本。</li>
+<li>主DNS named.conf里配置allow-transfer和also-notify选项</li>
+<li>辅助DNS主配置文件中option段，masterfile-format text；</li>
+<li>辅助DNS的配置文件里 type:slave</li>
+<li>启动辅助DNS时，检查完全区域传送：dig -t axfr @ 192.168.10.222</li>
+<li>辅助DNS不可修改主DNS配置。</li>
+</ul>
+<h5 id="3-6-1-1-配置主DNS">3.6.1.1 配置主DNS</h5>
+<p>（1）配置主配置文件</p>
+<p>​	添加以下字段：</p>
+<ul>
+<li>allow-transfer { 192.168.10.223; };  # 允许本区域传输至特定的从DNS服务器。</li>
+<li>also-notify { 192.168.10.223; };       # 主动通知从域名服务器（辅助DNS）进行更新，在主域名服务器进行更新后，而不需要在等规定的时间后才通知从域名服务器进行更新。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">主要修改以下字段</span></span><br><span class="line">[root@dns1 ~]# cat /etc/named.conf </span><br><span class="line">options &#123;</span><br><span class="line">        listen-on port 53 &#123; 192.168.10.222; &#125;;</span><br><span class="line">        allow-query     &#123; any; &#125;;</span><br><span class="line">		allow-transfer &#123; 192.168.10.223; &#125;;</span><br><span class="line">        also-notify &#123; 192.168.10.223; &#125;;       </span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>（2）配置区域数据文件</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">在末尾添加正解域和反解域</span></span><br><span class="line">[root@dns1 ~]# vi /etc/named.rfc1912.zones </span><br><span class="line">vi /etc/named.rfc1912.zones</span><br><span class="line">zone &quot;host.com&quot; IN &#123;</span><br><span class="line">        type  master;</span><br><span class="line">        file  &quot;host.com.zone&quot;;</span><br><span class="line">        allow-update &#123; none; &#125;;</span><br><span class="line">&#125;;</span><br><span class="line">zone &quot;10.168.192.in-addr.arpa&quot; IN &#123;</span><br><span class="line">        type master;</span><br><span class="line">        file &quot;10.168.192.in-addr.arpa.zone&quot;;</span><br><span class="line">        allow-update &#123; none; &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>（3）配置区域数据库文件</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">[root@dns1 ~]# cd /var/named/</span><br><span class="line"></span><br><span class="line">[root@dns1 named]# cat host.com.zone </span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 600        ;10 minutes</span></span><br><span class="line">@                       IN SOA  dns.host.com. test.qq.com. (</span><br><span class="line">                                2021070705 ; serial</span><br><span class="line">                                10800      ; refresh (3 hours)</span><br><span class="line">                                900        ; retry (15 minutes)</span><br><span class="line">                                604800     ; expire (1 week)</span><br><span class="line">                                86400      ; minimum (1 day)</span><br><span class="line">                                )</span><br><span class="line">                        NS   dns.host.com.</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">ORIGIN host.com.</span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 60 ; 1 minute</span></span><br><span class="line">dns1                    A    192.168.10.222</span><br><span class="line">dns2                    A    192.168.10.223</span><br><span class="line">test                    A    192.168.10.55</span><br><span class="line">dns                     A    192.168.10.222</span><br><span class="line"></span><br><span class="line">[root@dns1 named]# cat 10.168.192.in-addr.arpa.zone </span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 600 ;10min</span></span><br><span class="line">@       IN      SOA     dns.host.com    17614902580@163.com (</span><br><span class="line">                        2021071101      ;serial number</span><br><span class="line">                        10600           ;refresh 3 hours</span><br><span class="line">                        900             ;retry 15 minites</span><br><span class="line">                        604800          ;expire 1 week</span><br><span class="line">                        86400           ;minimum 1 day</span><br><span class="line">                        )</span><br><span class="line">                ns      dns.host.com.</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">ORIGIN 10.168.192.in-addr.arpa.</span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 60</span></span><br><span class="line">222     PTR     dns1.host.com.</span><br><span class="line">223     PTR     dns2.host.com.</span><br><span class="line">224     PTR     dns3.host.com.</span><br></pre></td></tr></table></figure>
+<h5 id="3-6-1-2-配置辅助DNS">3.6.1.2 配置辅助DNS</h5>
+<p>（1）修改主配置文件 /etc/named.conf，修改以下三个位置：</p>
+<ul>
+<li>listen-on port 53 { 192.168.10.223; };</li>
+<li>allow-query     { any; };</li>
+<li>masterfile-format text;</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#主要修改以下字段</span></span><br><span class="line">[root@dns2 ~]<span class="comment"># cat /etc/named.conf</span></span><br><span class="line">options &#123;</span><br><span class="line">        listen-on port 53 &#123; 192.168.10.223; &#125;;</span><br><span class="line">        allow-query     &#123; any; &#125;;</span><br><span class="line">        masterfile-format text;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>（2）辅助dns检查主dns完全区域数据传送，解析列表如下。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">[root@dns2 slaves]#  dig -t AXFR host.com @192.168.10.222</span><br><span class="line"></span><br><span class="line">; &lt;&lt;&gt;&gt; DiG 9.11.4-P2-RedHat-9.11.4-26.P2.el7_9.5 &lt;&lt;&gt;&gt; -t AXFR host.com @192.168.10.222</span><br><span class="line">;; global options: +cmd</span><br><span class="line">host.com.               600     IN      SOA     dns.host.com. test.qq.com. 2021070705 10800 900 604800 86400</span><br><span class="line">host.com.               600     IN      NS      dns.host.com.</span><br><span class="line">dns.host.com.           60      IN      A       192.168.10.222</span><br><span class="line">dns1.host.com.          60      IN      A       192.168.10.222</span><br><span class="line">dns2.host.com.          60      IN      A       192.168.10.223</span><br><span class="line">test.host.com.          60      IN      A       192.168.10.55</span><br><span class="line">host.com.               600     IN      SOA     dns.host.com. test.qq.com. 2021070705 10800 900 604800 86400</span><br><span class="line">;; Query time: 0 msec</span><br><span class="line">;; SERVER: 192.168.10.222#53(192.168.10.222)</span><br><span class="line">;; WHEN: Thu Jul 15 16:13:37 CST 2021</span><br><span class="line">;; XFR size: 7 records (messages 1, bytes 214)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>（3）配置辅助dns区域配置文件，添加正解域和反解域。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">在末尾主要添加以下字段。</span></span><br><span class="line">[root@dns2 slaves]# cat /etc/named.rfc1912.zones</span><br><span class="line"></span><br><span class="line">zone &quot;host.com&quot; IN &#123;</span><br><span class="line">        type slave ;</span><br><span class="line">        masters &#123;192.168.10.222 ;&#125; ;</span><br><span class="line">        file &quot;slaves/host.com.zone&quot; ;</span><br><span class="line">&#125;;</span><br><span class="line">zone &quot;10.168.192.in-addr.arpa&quot; IN &#123;</span><br><span class="line">        type slave;</span><br><span class="line">        masters &#123;192.168.10.222 ;&#125; ;</span><br><span class="line">        file &quot;slaves/10.168.192.in-addr.arpa.zone&quot;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>（4）重启主辅DNS服务器</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@dns2 ~]# systemctl restart named</span><br></pre></td></tr></table></figure>
+<p>（5）查看是否有区域数据库文件传输到辅助DNS slaves文件夹下</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@dns2 ~]# ls /var/named/slaves/</span><br><span class="line">10.168.192.in-addr.arpa.zone  host.com.zone</span><br></pre></td></tr></table></figure>
+<p>（6）在主DNS测试辅DNS是否可以解析。如果可以解析则说明主辅配同步完成。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@dns1 ~]# dig dns.host.com @192.168.10.223 +short</span><br><span class="line">192.168.10.222</span><br></pre></td></tr></table></figure>
+<p><strong>注意：我们只有在/etc/named.rfc1912.zone中添加了需要同步的域名，辅助dns才会进行同步。不添加的域名dns是不会进行同步</strong></p>
+<h3 id="3-7-维护静态域和动态域">3.7 维护静态域和动态域</h3>
+<h4 id="3-7-1-静态域维护">3.7.1 静态域维护</h4>
+<p>前提条件：在区域配置文件中 添加 allow-update { none; };   表示不允许动态更新。</p>
+<p>示例：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@dns1 ~]# cat /etc/named.rfc1912.zones </span><br><span class="line">zone &quot;host.com&quot; IN &#123;</span><br><span class="line">        type  master;</span><br><span class="line">        file  &quot;host.com.zone&quot;;</span><br><span class="line">        allow-update &#123; none; &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>每次配置更改区域数据库文件，需要手动前滚serial number，通知辅DNS更新。</p>
+<p>示例：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">[root@dns1 ~]# cat /var/named/host.com.zone</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 600        ;10 minutes</span></span><br><span class="line">@                       IN SOA  dns.host.com. test.qq.com. (</span><br><span class="line">                                2021070705 ; serial number  需要手动+1</span><br><span class="line">                                10800      ; refresh (3 hours)</span><br><span class="line">                                900        ; retry (15 minutes)</span><br><span class="line">                                604800     ; expire (1 week)</span><br><span class="line">                                86400      ; minimum (1 day)</span><br><span class="line">                                )</span><br><span class="line">                        NS   dns.host.com.</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">ORIGIN host.com.</span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 60 ; 1 minute</span></span><br><span class="line">dns1                    A    192.168.10.222</span><br><span class="line">dns2                    A    192.168.10.223</span><br><span class="line">test                    A    192.168.10.55</span><br><span class="line">dns                     A    192.168.10.222</span><br></pre></td></tr></table></figure>
+<h4 id="3-7-2-动态域维护">3.7.2 动态域维护</h4>
+<p>前提条件：在区域配置文件中 添加 allow-update { acl; };   表示根据acl指定策略进行动态更新。可填写ip地址。</p>
+<p>示例：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@dns1 ~]# cat /etc/named.rfc1912.zones </span><br><span class="line">zone &quot;host.com&quot; IN &#123;</span><br><span class="line">        type  master;</span><br><span class="line">        file  &quot;host.com.zone&quot;;</span><br><span class="line">        allow-update &#123; 192.168.10.222; &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>每次配置更改区域数据库文件，不需要手动前滚serial number，自动通知辅DNS更新。使用nsupdate等工具进行动态配置。</p>
+<h3 id="3-8-rndc-远程管理DNS">3.8 rndc 远程管理DNS</h3>
+<p>​		一般而言，DNS服务器是繁忙的 ，一台公网DNS会维护成千上万个zone，named服务不会轻易被重启，登陆dns服务器进行维护也会有极大的风险。所以需要对named进行远程管理。</p>
+<p>配置rndc工具步骤<br>
+（1）生成秘钥配置文件</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">[root@dns1 ~]# rndc-confgen -r /dev/urandom</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Start of rndc.conf</span></span><br><span class="line">key &quot;rndc-key&quot; &#123;</span><br><span class="line">        algorithm hmac-md5;</span><br><span class="line">        secret &quot;jZT2IXIGCfk3+mcWgsAkCw==&quot;; #客户端秘钥</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">options &#123;</span><br><span class="line">        default-key &quot;rndc-key&quot;;	 	#秘钥名</span><br><span class="line">        default-server 127.0.0.1;	#被管理服务器的目标IP地址</span><br><span class="line">        default-port 953;			#连接dns服务器的目标端口</span><br><span class="line">&#125;;</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">End of rndc.conf</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">--------------上面钥匙文件，存放在管理端/etc/rndc.conf  里</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">--------------下面为锁文件，存放在被管理端/etc/named.conf 里</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Use with the following <span class="keyword">in</span> named.conf, adjusting the allow list as needed:</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">key <span class="string">&quot;rndc-key&quot;</span> &#123;</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">      algorithm hmac-md5;</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">      secret <span class="string">&quot;jZT2IXIGCfk3+mcWgsAkCw==&quot;</span>;	<span class="comment">#服务器秘钥</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">&#125;;</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"></span></span><br><span class="line"><span class="language-bash"><span class="comment"># controls &#123;</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">      inet 127.0.0.1 port 953				 <span class="comment">#服务器监听的ip和端口</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">              allow &#123; 127.0.0.1; &#125; keys &#123; <span class="string">&quot;rndc-key&quot;</span>; &#125;;	<span class="comment">#允许哪些ip连接管理本机</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">&#125;;</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">End of named.conf</span></span><br></pre></td></tr></table></figure>
+<p>（2）将注释部分生成的文件配置，追加存放在被管理端/etc/named.conf中。并修改allow地址为本地或者远程管理dns的地址。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">[root@dns1 ~]# cat /etc/named.conf</span><br><span class="line">key &quot;rndc-key&quot; &#123;</span><br><span class="line">      algorithm hmac-md5;</span><br><span class="line">      secret &quot;jZT2IXIGCfk3+mcWgsAkCw==&quot;;</span><br><span class="line">&#125;;</span><br><span class="line"> </span><br><span class="line">controls &#123;</span><br><span class="line">      inet 192.168.10.222 port 953</span><br><span class="line">              allow &#123; 192.168.10.222;192.168.10.218; &#125; keys &#123; &quot;rndc-key&quot;; &#125;;</span><br><span class="line">&#125;; </span><br></pre></td></tr></table></figure>
+<p>（3）配置本地rndc管理dns（可选）</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">[root@dns1 ~]# cat /etc/rndc.conf </span><br><span class="line">key &quot;rndc-key&quot; &#123;</span><br><span class="line">        algorithm hmac-md5;</span><br><span class="line">        secret &quot;jZT2IXIGCfk3+mcWgsAkCw==&quot;;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">options &#123;</span><br><span class="line">        default-key &quot;rndc-key&quot;;</span><br><span class="line">        default-server 192.168.10.222;</span><br><span class="line">        default-port 953;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>（3）配置远程rndc管理dns</p>
+<p>a. 安装rndc工具</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install bind     ##bind包包含rndc工具。</span><br></pre></td></tr></table></figure>
+<p>b. 配置远程rndc管理DNS</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# cat /etc/rndc.conf</span><br><span class="line">key &quot;rndc-key&quot; &#123;</span><br><span class="line">        algorithm hmac-md5;</span><br><span class="line">        secret &quot;jZT2IXIGCfk3+mcWgsAkCw==&quot;;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">options &#123;</span><br><span class="line">        default-key &quot;rndc-key&quot;;</span><br><span class="line">        default-server 192.168.10.222;</span><br><span class="line">        default-port 953;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>（4）测试rndc远程管理</p>
+<p>a. 检查rndc远程管理状态</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# rndc status</span><br><span class="line">version: BIND 9.11.4-P2-RedHat-9.11.4-26.P2.el7_9.5 (Extended Support Version) &lt;id:7107deb&gt;</span><br><span class="line">running on dns1.host.com: Linux x86_64 5.5.7-1.el7.elrepo.x86_64 #1 SMP Fri Feb 28 12:21:58 EST 2020</span><br><span class="line">boot time: Sun, 18 Jul 2021 08:04:22 GMT</span><br><span class="line">last configured: Sun, 18 Jul 2021 08:04:22 GMT</span><br><span class="line">configuration file: /etc/named.conf</span><br><span class="line">CPUs found: 4</span><br><span class="line">worker threads: 4</span><br><span class="line">UDP listeners per interface: 3</span><br><span class="line">number of zones: 106 (97 automatic)</span><br><span class="line">debug level: 0</span><br><span class="line">xfers running: 0</span><br><span class="line">xfers deferred: 0</span><br><span class="line">soa queries in progress: 0</span><br><span class="line">query logging is OFF</span><br><span class="line">recursive clients: 0/900/1000</span><br><span class="line">tcp clients: 1/150</span><br><span class="line">server is up and running</span><br><span class="line">You have new mail in /var/spool/mail/root</span><br></pre></td></tr></table></figure>
+<h4 id="3-8-1-rndc-远程管理静态域">3.8.1 rndc 远程管理静态域</h4>
+<p>在静态域修改区域数据库文件后，使用以下命令重新加载区域数据库配置。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# rndc reload whbblog.cn</span><br><span class="line">zone reload up-to-date</span><br><span class="line">You have new mail in /var/spool/mail/root</span><br></pre></td></tr></table></figure>
+<h4 id="3-8-2-rndc-远程管理动态态域">3.8.2 rndc 远程管理动态态域</h4>
+<p>在动态域修改区域数据库文件后，使用以下命令冻结区域数据库文件配置。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# rndc  freeze host.com</span><br><span class="line">rndc: &#x27;freeze&#x27; failed: permission denied</span><br><span class="line">Flushing the zone updates to disk failed.</span><br></pre></td></tr></table></figure>
+<p>加载失败 检查权限问题，发现所属主和所属组都是root，应该修改权限为named。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[root@dns1 ~]# ll /var/named</span><br><span class="line">total 1084</span><br><span class="line">-rw-r--r-- 1 root  root   328 Jul 11 17:53 10.168.192.in-addr.arpa.zone</span><br><span class="line">drwxrwx--- 2 named named   75 Jul 18 03:16 data</span><br><span class="line">drwxrwx--- 2 named named   60 Jul 18 16:04 dynamic</span><br><span class="line">-rw-r--r-- 1 root  root   425 Jul 15 15:42 host.com.zone</span><br><span class="line">-rw-r--r-- 1 named named  698 Jul 16 10:02 host.com.zone.jnl</span><br></pre></td></tr></table></figure>
+<p>修改配置文件权限</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@dns1 ~]# chown named.named /var/named/host.com.zone</span><br><span class="line">[root@dns1 ~]# chmod 660 /var/named/host.com.zone</span><br></pre></td></tr></table></figure>
+<p>重新冻结区域数据库文件</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# rndc  freeze host.com</span><br><span class="line">You have new mail in /var/spool/mail/root</span><br></pre></td></tr></table></figure>
+<p>重新加载区域配置文件</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# rndc thaw host.com  </span><br><span class="line">The zone reload and thaw was successful.</span><br><span class="line">You have new mail in /var/spool/mail/root</span><br></pre></td></tr></table></figure>
+<h4 id="3-8-3-rndc-常用命令和选项">3.8.3 rndc 常用命令和选项</h4>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">选项</span><br><span class="line">-b source-address   绑定rndc客户端使用的源地址，因为一个网卡可有多个地址。</span><br><span class="line">-c config-file  指定连接时使用的配置文件，而不是默认的/etc/rndc.conf。</span><br><span class="line">-s server     指定要连接的服务器的IP地址。</span><br><span class="line">-p port 指定要连接的服务器的端口。</span><br><span class="line">-k key-file 指定连接时使用的密钥文件，而不是默认的/etc/rndc.key。</span><br><span class="line">-y key-id   指定要使用的密钥标识，必须与服务器一致。</span><br><span class="line">-v  输出详细的日志信息。</span><br><span class="line"></span><br><span class="line">命令功能</span><br><span class="line">reload                                    #重新加载named.conf和新的域，但不会重新加载已存的域文件。</span><br><span class="line">reload zone_name                  #重新加载指定区域        </span><br><span class="line">        [root@server-11 ~]# rndc  -s 192.168.10.11 reload   base07.com</span><br><span class="line">reconfig                                 #重读配置文件并加载新增的区域</span><br><span class="line">querylog                                 #关闭或开启查询日志， 查询日志会输出到  /var/log/message ,   繁忙时，可能会瞬间增大 message </span><br><span class="line"></span><br><span class="line">dumpdb                                  #将高速缓存转储到转储文件 (named_dump.db)</span><br><span class="line">freeze                                      #暂停更新所有动态zone</span><br><span class="line">freeze zone [class [view]]      #暂停更新一个动态zone</span><br><span class="line">flush   [view]                        #刷新服务器的所有高速缓存</span><br><span class="line">flushname name                   #为某一视图刷新服务器的高速缓存</span><br><span class="line">stats                                    #将服务器统计信息写入统计文件中    /var/named/data/named_stats.txt</span><br><span class="line">status                                 #显示服务器状态。</span><br><span class="line">stop                                    #将暂挂更新保存到主文件并停止服务器</span><br><span class="line">halt                                     #停止服务器，但不保存暂挂更新</span><br><span class="line">trace                                   #打开debug, debug有级别的概念，每执行一次提升一次级别</span><br><span class="line">trace LEVEL                         #指定 debug 的级别, trace 0 表示关闭debug</span><br><span class="line">notrace                                 #将调试级别设置为 0</span><br><span class="line">restart                                 #重新启动服务器（尚未实现）</span><br><span class="line">addzone zone  [class [view]]   &#123; zone-options &#125;        #增加一个zone</span><br><span class="line">delzone  zone  [class [view]]                                   #删除一个zone</span><br></pre></td></tr></table></figure>
+<h3 id="3-9-view视图功能">3.9 view视图功能</h3>
+<p>​		view语句定义了视图功能。视图是BIND9提供的强大的新功能，允许DNS服务器根据客户端的不同，有区别地回答DNS查询，每个视图定义了一个被特定客户端子集见到的DNS名称空间。这个功能在一台主机上运行多个形式上独立的DNS服务器时特别有用。</p>
+<p>配置在/etc/named.comf语法示例：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">view view_name [class] &#123;</span><br><span class="line">    match-clients &#123; address_match_list &#125; ;</span><br><span class="line">    match-destinations &#123; address_match_list &#125; ;</span><br><span class="line">    match-recursive-only &#123; yes_or_no &#125; ;</span><br><span class="line">    [ view_option; ...]</span><br><span class="line">    [ zone-statistics yes_or_no ; ]</span><br><span class="line">    [ zone_statement; ...]</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<h4 id="3-9-1-view配置范例">3.9.1 view配置范例</h4>
+<p><strong>1.按照不同业务环境解析。</strong></p>
+<p>背景环境介绍：</p>
+<p>业务客户端环境ip：192.168.10.222</p>
+<p>测试客户端环境ip：192.168.10.223</p>
+<p>当业务客户端访问 <a target="_blank" rel="noopener external nofollow noreferrer" href="http://www.whbblog.cn">www.whbblog.cn</a> 返回a记录192.168.10.2</p>
+<p>当测试客户端访问 <a target="_blank" rel="noopener external nofollow noreferrer" href="http://www.whbblog.cn">www.whbblog.cn</a> 返回a记录192.168.10.3</p>
+<p>a. 配置/etc/named.conf文件如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">acl &quot;env-test&quot; &#123;</span><br><span class="line">    192.168.10.223;</span><br><span class="line">&#125;;</span><br><span class="line">acl &quot;env-prd&quot; &#123;</span><br><span class="line">    192.168.10.222;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">view &quot;env-test&quot; &#123;</span><br><span class="line">    match-clients &#123; &quot;env-test&quot;; &#125;;</span><br><span class="line">    recursion yes;</span><br><span class="line">    zone &quot;whbblog.cn&quot; &#123;</span><br><span class="line">        type master;</span><br><span class="line">        file &quot;env-test.whbblog.cn.zone&quot;;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;;</span><br><span class="line">view &quot;env-prd&quot; &#123;</span><br><span class="line">    match-clients &#123; &quot;env-prd&quot;; &#125;;</span><br><span class="line">    recursion yes;</span><br><span class="line">    zone &quot;whbblog.cn&quot; &#123;</span><br><span class="line">        type master;</span><br><span class="line">        file &quot;env-prd.whbblog.cn.zone&quot;;</span><br><span class="line">    &#125;; </span><br><span class="line">&#125;;</span><br><span class="line">view &quot;default&quot; &#123;</span><br><span class="line">    match-clients &#123; any; &#125;;</span><br><span class="line">    recursion yes;</span><br><span class="line">    zone &quot;.&quot; IN &#123;</span><br><span class="line">	type hint;</span><br><span class="line">	file &quot;named.ca&quot;;</span><br><span class="line">    &#125;;</span><br><span class="line">    include &quot;/etc/named.rfc1912.zones&quot;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>b. 配置 env-prd.whbblog.cn.zone</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">[root@dns1 named]# cat env-prd.whbblog.cn.zone </span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">ORIGIN .</span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 600</span></span><br><span class="line">whbblog.cn      IN      SOA     dns.whbblog.cn  test.qq.com (</span><br><span class="line">                                2021061601  ; serial number</span><br><span class="line">                                10800       ; refresh 3hours</span><br><span class="line">                                900         ; retry 15min </span><br><span class="line">                                604800      ; expire 1week</span><br><span class="line">                                86400       ; Non authoritative  1day</span><br><span class="line">                                )</span><br><span class="line">                        NS      ns1.whbblog.cn</span><br><span class="line">                        NS      ns2.whbblog.cn</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">ORIGIN whbblog.cn.</span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 60</span></span><br><span class="line">www     A       192.168.10.2</span><br><span class="line">ns1     A       192.168.10.222</span><br><span class="line">ns2     A       192.168.10.223</span><br></pre></td></tr></table></figure>
+<p>c. 配置 env-test.whbblog.cn.zone</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">[root@dns1 named]# cat env-test.whbblog.cn.zone </span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">ORIGIN .</span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 600</span></span><br><span class="line">whbblog.cn      IN      SOA     dns.whbblog.cn  test.qq.com (</span><br><span class="line">                                2021061601  ; serial number</span><br><span class="line">                                10800       ; refresh 3hours</span><br><span class="line">                                900         ; retry 15min </span><br><span class="line">                                604800      ; expire 1week</span><br><span class="line">                                86400       ; Non authoritative  1day</span><br><span class="line">                                )</span><br><span class="line">                        NS      ns1.whbblog.cn</span><br><span class="line">                        NS      ns2.whbblog.cn</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">ORIGIN whbblog.cn.</span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">TTL 60</span></span><br><span class="line">www     A       192.168.10.3</span><br><span class="line">ns1     A       192.168.10.222</span><br><span class="line">ns2     A       192.168.10.223</span><br></pre></td></tr></table></figure>
+<p>d. 测试结果</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">在业务测ip192.168.10.222测试：</span><br><span class="line">[root@dns1 named]# dig -t a www.whbblog.cn @192.168.10.222 +short</span><br><span class="line">192.168.10.2</span><br><span class="line"></span><br><span class="line">在测试测ip192.168.10.223测试：</span><br><span class="line">[root@dns2 ~]# dig -t a www.whbblog.cn @192.168.10.222 +short</span><br><span class="line">192.168.10.3</span><br></pre></td></tr></table></figure>
+<p><strong>2.智能DNS解析，这里就不演示了。原理一样。</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">//电信IP访问控制列表</span><br><span class="line">acl &quot;telecomip&quot;&#123; telecom_IP; ... &#125;;</span><br><span class="line">//联通IP访问控制列表</span><br><span class="line">acl &quot;netcomip&quot;&#123; netcom_IP; ... &#125;;</span><br><span class="line">view &quot;telecom&quot; &#123;</span><br><span class="line">    match-clients &#123; &quot;telecomip&quot;; &#125;;</span><br><span class="line">    zone &quot;ZONE_NAME&quot; IN &#123;</span><br><span class="line">        type master;</span><br><span class="line">        file &quot;ZONE_NAME.telecom.zone&quot;;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;;</span><br><span class="line">view &quot;netcom&quot; &#123;</span><br><span class="line">    match-clients &#123; &quot;netcomip&quot;; &#125;;</span><br><span class="line">    zone &quot;ZONE_NAME&quot; IN &#123;</span><br><span class="line">        type master;</span><br><span class="line">        file &quot;ZONE_NAME.netcom.zone&quot;;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;;</span><br><span class="line">view &quot;default&quot; &#123;</span><br><span class="line">    match-clients &#123; any; &#125;;</span><br><span class="line">    zone &quot;ZONE_NAME&quot; IN &#123;</span><br><span class="line">        type master;</span><br><span class="line">        file &quot;ZONE_NAME.zone&quot;;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<h2 id="4-参考链接">4. 参考链接</h2>
+<p><strong>真诚感谢以下各位大佬！！！</strong></p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">参考链接：https://blog.csdn.net/Jaihk662/article/details/80510377</span><br><span class="line"></span><br><span class="line">参考链接：https://www.cnblogs.com/doherasyang/p/14464999.html#11-dns</span><br><span class="line"></span><br><span class="line">参考链接：https://blog.csdn.net/baidu_37964071/article/details/80500825</span><br><span class="line"></span><br><span class="line">参考链接：https://blog.csdn.net/jaihk662/article/details/80509206</span><br><span class="line"></span><br><span class="line">参考链接：https://blog.51cto.com/lihushan/157213</span><br><span class="line"></span><br><span class="line">参考链接：http://www.linuxidc.com/Linux/2017-05/143405.htm</span><br><span class="line"></span><br><span class="line">参考链接：https://blog.stanley.wang/</span><br><span class="line"></span><br><span class="line">参考链接：https://www.jianshu.com/p/8efb3bbc180a</span><br><span class="line"></span><br><span class="line">参考链接：https://blog.csdn.net/qq_27870421/article/details/94125678</span><br><span class="line"></span><br><span class="line">参考链接：https://i4t.com/4982.html</span><br><span class="line"></span><br><span class="line">参考链接：https://blog.csdn.net/qq_38228830/article/details/82314584</span><br></pre></td></tr></table></figure>
+</article><div class="post-copyright"><div class="post-copyright__title"><span class="post-copyright-info"><h>DNS基础以及Bind详解</h></span></div><div class="post-copyright__type"><span class="post-copyright-info"><a href="https://www.yyds.space/posts/412f68ba6832.html">https://www.yyds.space/posts/412f68ba6832.html</a></span></div><div class="post-copyright-m"><div class="post-copyright-m-info"><div class="post-copyright-a"><h>作者</h><div class="post-copyright-cc-info"><h>YYDS Space</h></div></div><div class="post-copyright-c"><h>发布于</h><div class="post-copyright-cc-info"><h>2021-07-18</h></div></div><div class="post-copyright-u"><h>更新于</h><div class="post-copyright-cc-info"><h>2023-03-19</h></div></div><div class="post-copyright-c"><h>许可协议</h><div class="post-copyright-cc-info"><a class="icon" rel="noopener external nofollow noreferrer" target="_blank" title="Creative Commons" href="https://creativecommons.org/"><i class="fab fa-creative-commons"></i></a><a rel="noopener external nofollow noreferrer" target="_blank" title="CC BY-NC-SA 4.0" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a></div></div></div></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/DNS/"><div class="tags-punctuation"><svg class="faa-tada icon" style="height:1.1em;width:1.1em;fill:currentColor;position:relative;top:2px;margin-right:3px" aria-hidden="true"><use xlink:href="#icon-sekuaibiaoqian"></use></svg></div>DNS</a><a class="post-meta__tags" href="/tags/Bind/"><div class="tags-punctuation"><svg class="faa-tada icon" style="height:1.1em;width:1.1em;fill:currentColor;position:relative;top:2px;margin-right:3px" aria-hidden="true"><use xlink:href="#icon-sekuaibiaoqian"></use></svg></div>Bind</a></div></div><link rel="stylesheet" href="/css/coin.css" media="defer" onload="this.media='all'"/><div class="post-reward"><button class="tip-button reward-button"><span class="tip-button__text">投喂作者</span><div class="coin-wrapper"><div class="coin"><div class="coin__middle"></div><div class="coin__back"></div><div class="coin__front"></div></div></div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="https://cdn.niux.plus/LightPicture/2023/02/341dff4125857b97.png" rel="external nofollow noreferrer" target="_blank"><img class="post-qr-code-img" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/02/341dff4125857b97.png" alt="微信"/></a><div class="post-qr-code-desc">微信</div></li><li class="reward-item"><a href="https://cdn.niux.plus/LightPicture/2023/02/d2f65b4e3b5f3fd3.png" rel="external nofollow noreferrer" target="_blank"><img class="post-qr-code-img" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/02/d2f65b4e3b5f3fd3.png" alt="支付宝"/></a><div class="post-qr-code-desc">支付宝</div></li></ul></div></button></div><audio id="coinAudio" src="https://npm.elemecdn.com/akilar-candyassets@1.0.36/audio/aowu.m4a"></audio><script defer="defer" src="/js/coin.js"></script><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/posts/7876fd4c89c0.html"><img class="prev-cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/f5452888ae734a67.png" onerror="onerror=null;src='/assets/r2.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">APM+LTM实现对访问vs的用户进行认证</div></div></a></div><div class="next-post pull-right"><a href="/posts/bb4c615bd6dc.html"><img class="next-cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/3b31797fe46693ad.png" onerror="onerror=null;src='/assets/r2.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">F5 友好界面iRule实现</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/posts/9cf4f1324ca6.html" title="F5 ZoneRunner CNAME 转发配置"><img class="cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/4d8bf5f62d350018.png" alt="cover"><div class="content is-center"><div class="date"><i class="fas fa-history fa-fw"></i> 2023-03-26</div><div class="title">F5 ZoneRunner CNAME 转发配置</div></div></a></div><div><a href="/posts/92717defa17f.html" title="F5 配置 DNS 解析日志"><img class="cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/cf8d5afba1bb5016.png" alt="cover"><div class="content is-center"><div class="date"><i class="fas fa-history fa-fw"></i> 2023-03-26</div><div class="title">F5 配置 DNS 解析日志</div></div></a></div><div><a href="/posts/398687b5ca7e.html" title="Windows Server DNS 服务器迁移至F5 GTM"><img class="cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/8cbb47cc6746c107.png" alt="cover"><div class="content is-center"><div class="date"><i class="fas fa-history fa-fw"></i> 2023-03-25</div><div class="title">Windows Server DNS 服务器迁移至F5 GTM</div></div></a></div><div><a href="/posts/e7438d0af736.html" title="使用F5 GTM 做 Windows Server DNS 的 Slave 名称服务器"><img class="cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/f5452888ae734a67.png" alt="cover"><div class="content is-center"><div class="date"><i class="fas fa-history fa-fw"></i> 2023-03-19</div><div class="title">使用F5 GTM 做 Windows Server DNS 的 Slave 名称服务器</div></div></a></div><div><a href="/posts/3b5295ef71c6.html" title="DNS 协议报文格式解析"><img class="cover" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/68884a3cec1bd80e.png" alt="cover"><div class="content is-center"><div class="date"><i class="fas fa-history fa-fw"></i> 2023-03-26</div><div class="title">DNS 协议报文格式解析</div></div></a></div></div></div><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><svg class="meta_icon" style="width:22px;height:22px;position:relative;top:5px"><use xlink:href="#icon-mulu1"></use></svg><span style="font-weight:bold">目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81DNS%E5%9F%BA%E7%A1%80%E4%BB%8B%E7%BB%8D"><span class="toc-text">一、DNS基础介绍</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E8%83%8C%E6%99%AF"><span class="toc-text">1. 背景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-FQDN"><span class="toc-text">1.2 FQDN</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-DNS-%E5%9F%9F"><span class="toc-text">1.3 DNS 域</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-3-1-%E5%9F%9F%E5%90%8D%E7%BB%93%E6%9E%84"><span class="toc-text">1.3.1 域名结构</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-3-2-%E5%9F%9F%E5%90%8D%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="toc-text">1.3.2 域名服务器</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-3-3-%E5%9F%9F%E5%90%8D%E8%A7%84%E5%88%99"><span class="toc-text">1.3.3 域名规则</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81DNS%E8%A7%A3%E6%9E%90"><span class="toc-text">二、DNS解析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-DNS%E8%A7%A3%E6%9E%90%E9%A1%BA%E5%BA%8F"><span class="toc-text">2.1 DNS解析顺序</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-%E9%80%92%E5%BD%92%E6%9F%A5%E8%AF%A2%E5%92%8C%E8%BF%AD%E4%BB%A3%E6%9F%A5%E8%AF%A2"><span class="toc-text">2.2 递归查询和迭代查询</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81bind9"><span class="toc-text">三、bind9</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E5%9F%BA%E6%9C%AC%E7%8E%AF%E5%A2%83%E4%B8%8E%E5%AE%89%E8%A3%85"><span class="toc-text">3.1 基本环境与安装</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8yum%E5%AE%89%E8%A3%85BIND9"><span class="toc-text">使用yum安装BIND9</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-bind9-%E5%9F%BA%E7%A1%80"><span class="toc-text">3.2 bind9 基础</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-1-bind9-%E4%B8%BB%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="toc-text">3.2.1 bind9 主配置文件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-2-bind9-%E5%B8%B8%E7%94%A8%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="toc-text">3.2.2 bind9 常用基本命令</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-3-bind9-%E5%8C%BA%E5%9F%9F%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="toc-text">3.2.3 bind9 区域配置文件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-4-%E5%8C%BA%E5%9F%9F%E6%95%B0%E6%8D%AE%E5%BA%93%E6%96%87%E4%BB%B6"><span class="toc-text">3.2.4 区域数据库文件</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#3-2-4-1-%E8%B5%84%E6%BA%90%E8%AE%B0%E5%BD%95-Resource-Records"><span class="toc-text">3.2.4.1 资源记录(Resource Records)</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#3-2-4-2-%E5%AE%8F%E5%AE%9A%E4%B9%89%EF%BC%88%E4%BB%A5-%E5%BC%80%E5%A4%B4%E7%9A%84%E9%83%A8%E5%88%86%EF%BC%89"><span class="toc-text">3.2.4.2 宏定义（以$开头的部分）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#3-2-4-3-%E6%B3%A8%E9%87%8A%EF%BC%88%E4%BB%A5-%E5%BC%80%E5%A4%B4%E7%9A%84%E9%83%A8%E5%88%86%EF%BC%89"><span class="toc-text">3.2.4.3 注释（以 ; 开头的部分）</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-%E6%AD%A3%E8%A7%A3%E5%9F%9F"><span class="toc-text">3.3 正解域</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-1-%E9%85%8D%E7%BD%AE%E6%AD%A3%E8%A7%A3%E5%9F%9F"><span class="toc-text">3.3.1 配置正解域</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-2-%E7%AE%A1%E7%90%86%E6%AD%A3%E8%A7%A3%E5%9F%9F"><span class="toc-text">3.3.2 管理正解域</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#3-3-2-1-%E5%A2%9E%E5%8A%A0%E8%B5%84%E6%BA%90%E8%AE%B0%E5%BD%95"><span class="toc-text">3.3.2.1 增加资源记录</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-4-%E5%8F%8D%E8%A7%A3%E5%9F%9F"><span class="toc-text">3.4 反解域</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-4-1-%E9%85%8D%E7%BD%AE%E5%8F%8D%E8%A7%A3%E5%9F%9F"><span class="toc-text">3.4.1 配置反解域</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-4-2-%E7%AE%A1%E7%90%86%E5%8F%8D%E8%A7%A3%E5%9F%9F"><span class="toc-text">3.4.2 管理反解域</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#3-4-2-1-%E5%A2%9E%E5%8A%A0%E8%B5%84%E6%BA%90%E8%AE%B0%E5%BD%95"><span class="toc-text">3.4.2.1 增加资源记录</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-5-DNS-%E5%B8%B8%E7%94%A8%E5%B7%A5%E5%85%B7"><span class="toc-text">3.5 DNS 常用工具</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-5-1-nslookup"><span class="toc-text">3.5.1 nslookup</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-5-2-host"><span class="toc-text">3.5.2 host</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-5-3-dig"><span class="toc-text">3.5.3 dig</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-5-4-nsupdate"><span class="toc-text">3.5.4 nsupdate</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-6-DNS-%E4%B8%BB%E8%BE%85%E5%90%8C%E6%AD%A5"><span class="toc-text">3.6 DNS 主辅同步</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-6-1%E4%B8%BB%E8%BE%85%E5%90%8C%E6%AD%A5%E9%85%8D%E7%BD%AE"><span class="toc-text">3.6.1主辅同步配置</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#3-6-1-1-%E9%85%8D%E7%BD%AE%E4%B8%BBDNS"><span class="toc-text">3.6.1.1 配置主DNS</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#3-6-1-2-%E9%85%8D%E7%BD%AE%E8%BE%85%E5%8A%A9DNS"><span class="toc-text">3.6.1.2 配置辅助DNS</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-7-%E7%BB%B4%E6%8A%A4%E9%9D%99%E6%80%81%E5%9F%9F%E5%92%8C%E5%8A%A8%E6%80%81%E5%9F%9F"><span class="toc-text">3.7 维护静态域和动态域</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-7-1-%E9%9D%99%E6%80%81%E5%9F%9F%E7%BB%B4%E6%8A%A4"><span class="toc-text">3.7.1 静态域维护</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-7-2-%E5%8A%A8%E6%80%81%E5%9F%9F%E7%BB%B4%E6%8A%A4"><span class="toc-text">3.7.2 动态域维护</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-8-rndc-%E8%BF%9C%E7%A8%8B%E7%AE%A1%E7%90%86DNS"><span class="toc-text">3.8 rndc 远程管理DNS</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-8-1-rndc-%E8%BF%9C%E7%A8%8B%E7%AE%A1%E7%90%86%E9%9D%99%E6%80%81%E5%9F%9F"><span class="toc-text">3.8.1 rndc 远程管理静态域</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-8-2-rndc-%E8%BF%9C%E7%A8%8B%E7%AE%A1%E7%90%86%E5%8A%A8%E6%80%81%E6%80%81%E5%9F%9F"><span class="toc-text">3.8.2 rndc 远程管理动态态域</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-8-3-rndc-%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E5%92%8C%E9%80%89%E9%A1%B9"><span class="toc-text">3.8.3 rndc 常用命令和选项</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-9-view%E8%A7%86%E5%9B%BE%E5%8A%9F%E8%83%BD"><span class="toc-text">3.9 view视图功能</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-9-1-view%E9%85%8D%E7%BD%AE%E8%8C%83%E4%BE%8B"><span class="toc-text">3.9.1 view配置范例</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5"><span class="toc-text">4. 参考链接</span></a></li></ol></div></div></div></div></main><footer id="footer" style="background-color: transparent;"><div id="footer-wrap"><div id="ft"><div class="ft-item-1"><div class="t-top"><div class="t-t-l"><p class="ft-t t-l-t">格言🧬</p><div class="bg-ad"><div>再看看那个光点，它就在这里，这是家园，这是我们 —— 你所爱的每一个人，你认识的一个人，你听说过的每一个人，曾经有过的每一个人，都在它上面度过他们的一生✨</div><div class="btn-xz-box"><a class="btn-xz" target="_blank" rel="noopener external nofollow noreferrer" href="https://stellarium.org/">点击开启星辰之旅</a></div></div></div><div class="t-t-r"><p class="ft-t t-l-t">猜你想看💡</p><ul class="ft-links"><li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.fomal.cc/posts/eec9786.html">魔改指南</a><a href="/box/nav/">网址导航</a></li><li><a href="/social/link/">我的朋友</a><a href="/comments/">留点什么</a></li><li><a href="/personal/about/">关于作者</a><a href="/archives/">文章归档</a></li><li><a href="/categories/">文章分类</a><a href="/tags/">文章标签</a></li><li><a href="/personal/time/">建设进程</a><a href="/site/echarts/">网站统计</a></li></ul></div></div></div><div class="ft-item-2"><p class="ft-t">推荐友链⌛</p><div class="ft-img-group"><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.fomal.cc/" title="Fomalhaut🥝"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.fomal.cc/assets/avatar.webp" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://tzy1997.com/" title="Ethan.Tzy"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://bu.dusays.com/2022/05/02/626f92e193879.jpg" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://akilar.top/" title="Akilarの糖果屋"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://npm.elemecdn.com/akilar-friends@latest/avatar/akilar.top.jpg" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/zh-cn/" title="hexo"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://d33wubrfki0l68.cloudfront.net/6657ba50e702d84afb32fe846bed54fba1a77add/827ae/logo.svg" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://butterfly.js.org/" title="Jerry"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://butterfly.js.org/img/avatar.png" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://blog.eurkon.com" title="Eurkon"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://blog.eurkon.com/images/user/avatar.jpg" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://anzhiy.cn/" title="安知鱼`Blog"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img02.anzhiy.cn/adminuploads/1/2022/09/15/63232b7d91d22.jpg" alt=""/></a></div><div class="img-group-item"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.qcqx.cn" title="轻笑Chuckle"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.qcqx.cn/img/head.webp" alt=""/></a></div></div></div></div><div class="copyright"><span><b>&copy;2021-2023</b></span><span><b>&nbsp;&nbsp;By YYDS Space</b></span></div><div id="workboard"></div><p id="ghbdages"><a class="github-badge" target="_blank" href="https://hexo.io/" rel="external nofollow noreferrer" style="margin-inline:5px" title="博客框架为Hexo_v6.3.0"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://sourcebucket.s3.ladydaily.com/badge/Frame-Hexo-blue.svg" alt=""/></a><a class="github-badge" target="_blank" href="https://butterfly.js.org/" rel="external nofollow noreferrer" style="margin-inline:5px" title="主题版本Butterfly_v4.3.1"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://sourcebucket.s3.ladydaily.com/badge/Theme-Butterfly-6513df.svg" alt=""/></a><a class="github-badge" target="_blank" href="https://vercel.com/" rel="external nofollow noreferrer" style="margin-inline:5px" title="本站采用多线部署，主线路托管于Vercel"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://sourcebucket.s3.ladydaily.com/badge/Hosted-Vercel-brightgreen.svg" alt=""/></a><a class="github-badge" target="_blank" href="https://user.51.la/" rel="external nofollow noreferrer" style="margin-inline:5px" title="本站数据分析得益于51la技术支持"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://sourcebucket.s3.ladydaily.com/badge/Analytics-51la-3db1eb.svg" alt=""/></a><a class="github-badge" target="_blank" href="https://beian.miit.gov.cn/" rel="external nofollow noreferrer" style="margin-inline:5px" title="本站已加入ICP备案，京ICP备2021018172号-3"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/blog/img/beian.svg" alt=""/></a><a class="github-badge" target="_blank" href="https://icp.gov.moe/?keyword=20239986" rel="external nofollow noreferrer" style="margin-inline:5px" title="本站已加入萌ICP豪华套餐，萌ICP备20239986号"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/blog/img/meng.svg" alt=""/></a><a class="github-badge" target="_blank" href="https://github.com/" rel="external nofollow noreferrer" style="margin-inline:5px" title="本网站源码由Github提供存储仓库"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src=" https://sourcebucket.s3.ladydaily.com/badge/Source-Github-d021d6.svg" alt=""/></a><a class="github-badge" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" rel="external nofollow noreferrer" style="margin-inline:5px" title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可"><img src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://sourcebucket.s3.ladydaily.com/badge/Copyright-BY--NC--SA--4.svg" alt=""/></a></p></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><a class="icon-V hidden" onclick="switchNightMode()" title="浅色和深色模式转换"><svg width="25" height="25" viewBox="0 0 1024 1024"><use id="modeicon" xlink:href="#icon-moon"></use></svg></a><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button><button class="share" type="button" title="右键模式" onclick="changeMouseMode()"><i class="fas fa-mouse"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog right_side"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button class="share" type="button" title="分享链接" onclick="share()"><i class="fas fa-share-nodes"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i><span id="percent">0<span>%</span></span></button><button id="go-down" type="button" title="直达底部" onclick="btf.scrollToDest(document.body.scrollHeight, 500)"><i class="fas fa-arrow-down"></i></button></div></div><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div></div></div><div id="search-mask"></div></div><div class="js-pjax" id="rightMenu"><div class="rightMenu-group rightMenu-small"><a class="rightMenu-item" href="javascript:window.history.back();" rel="external nofollow noreferrer"><i class="fa fa-arrow-left"></i></a><a class="rightMenu-item" href="javascript:window.history.forward();" rel="external nofollow noreferrer"><i class="fa fa-arrow-right"></i></a><a class="rightMenu-item" href="javascript:window.location.reload();" rel="external nofollow noreferrer"><i class="fa fa-refresh"></i></a><a class="rightMenu-item" href="javascript:rmf.scrollToTop();" rel="external nofollow noreferrer"><i class="fa fa-arrow-up"></i></a></div><div class="rightMenu-group rightMenu-line hide" id="menu-text"><a class="rightMenu-item" href="javascript:rmf.copySelect();" rel="external nofollow noreferrer"><i class="fa fa-copy"></i><span>复制</span></a><a class="rightMenu-item" href="javascript:window.open(&quot;https://www.baidu.com/s?wd=&quot;+window.getSelection().toString());window.location.reload();" rel="external nofollow noreferrer"><i class="fa fa-search"></i><span>百度搜索</span></a></div><div class="rightMenu-group rightMenu-line hide" id="menu-too"><a class="rightMenu-item" href="javascript:window.open(window.getSelection().toString());window.location.reload();" rel="external nofollow noreferrer"><i class="fa fa-link"></i><span>转到链接</span></a></div><div class="rightMenu-group rightMenu-line hide" id="menu-paste"><a class="rightMenu-item" href="javascript:rmf.paste()" rel="external nofollow noreferrer"><i class="fa fa-copy"></i><span>粘贴</span></a></div><div class="rightMenu-group rightMenu-line hide" id="menu-post"><a class="rightMenu-item" href="#post-comment"><i class="fas fa-comment"></i><span>空降评论</span></a><a class="rightMenu-item" href="javascript:rmf.copyWordsLink()" rel="external nofollow noreferrer"><i class="fa fa-link"></i><span>复制本文地址</span></a></div><div class="rightMenu-group rightMenu-line hide" id="menu-to"><a class="rightMenu-item" href="javascript:rmf.openWithNewTab()" rel="external nofollow noreferrer"><i class="fa fa-window-restore"></i><span>新窗口打开</span></a><a class="rightMenu-item" id="menu-too" href="javascript:rmf.open()" rel="external nofollow noreferrer"><i class="fa fa-link"></i><span>转到链接</span></a><a class="rightMenu-item" href="javascript:rmf.copyLink()" rel="external nofollow noreferrer"><i class="fa fa-copy"></i><span>复制链接</span></a></div><div class="rightMenu-group rightMenu-line hide" id="menu-img"><a class="rightMenu-item" href="javascript:rmf.saveAs()" rel="external nofollow noreferrer"><i class="fa fa-download"></i><span>保存图片</span></a><a class="rightMenu-item" href="javascript:rmf.openWithNewTab()" rel="external nofollow noreferrer"><i class="fa fa-window-restore"></i><span>在新窗口打开</span></a><a class="rightMenu-item" href="javascript:rmf.copyLink()" rel="external nofollow noreferrer"><i class="fa fa-copy"></i><span>复制图片链接</span></a></div><div class="rightMenu-group rightMenu-line"><a class="rightMenu-item" href="javascript:randomPost()" rel="external nofollow noreferrer"><i class="fa fa-paper-plane"></i><span>随便逛逛</span></a><a class="rightMenu-item" href="javascript:switchNightMode();" rel="external nofollow noreferrer"><i class="fa fa-moon"></i><span>昼夜切换</span></a><a class="rightMenu-item" href="/personal/about/"><i class="fa fa-info-circle"></i><span>关于博客</span></a><a class="rightMenu-item" href="javascript:toggleWinbox();" rel="external nofollow noreferrer"><i class="fas fa-cog"></i><span>美化设置</span></a><a class="rightMenu-item" href="javascript:rmf.fullScreen();" rel="external nofollow noreferrer"><i class="fas fa-expand"></i><span>切换全屏</span></a><a class="rightMenu-item" href="javascript:window.print();" rel="external nofollow noreferrer"><i class="fa-solid fa-print"></i><span>打印页面</span></a></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.staticfile.org/fancyapps-ui/4.0.31/fancybox.umd.min.js"></script><script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/instant.page/5.1.0/instantpage.min.js" type="module"></script><script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/vanilla-lazyload/17.3.1/lazyload.iife.min.js"></script><script src="/js/search/local-search.js"></script><script async="async">var preloader = {
+  endLoading: () => {
+    document.body.style.overflow = 'auto';
+    document.getElementById('loading-box').classList.add("loaded")
+  },
+  initLoading: () => {
+    document.body.style.overflow = '';
+    document.getElementById('loading-box').classList.remove("loaded")
+
+  }
+}
+window.addEventListener('load',preloader.endLoading())
+setTimeout(function(){preloader.endLoading();}, 5000);
+document.getElementById('loading-box').addEventListener('click',()=> {preloader.endLoading()})</script><div class="js-pjax"><script>(()=>{
+  const init = () => {
+    twikoo.init(Object.assign({
+      el: '#twikoo-wrap',
+      envId: 'https://twikoo.yyds.space/',
+      region: '',
+      onCommentLoaded: function () {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      }
+    }, null))
+  }
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://twikoo.yyds.space/',
+      region: '',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(function (res) {
+      countELement.innerText = res[0].count
+    }).catch(function (err) {
+      console.error(err);
+    });
+  }
+
+  const runFn = () => {
+    init()
+    
+  }
+
+  const loadTwikoo = () => {
+    if (typeof twikoo === 'object') {
+      setTimeout(runFn,0)
+      return
+    } 
+    getScript('https://cdn.staticfile.org/twikoo/1.6.8/twikoo.all.min.js').then(runFn)
+  }
+
+  if ('Twikoo' === 'Twikoo' || !true) {
+    if (true) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = () => {
+      loadTwikoo()
+    }
+  }
+})()</script></div><script src="https://cdn.staticfile.org/jquery/3.6.3/jquery.min.js"></script><script async src="https://cdn1.tianli0.top/npm/vue@2.6.14/dist/vue.min.js"></script><script async src="https://cdn1.tianli0.top/npm/element-ui@2.15.6/lib/index.js"></script><script async src="https://cdn.bootcdn.net/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script><script async src="//npm.elemecdn.com/pace-js@1.2.4/pace.min.js"></script><script defer src="https://cdn1.tianli0.top/gh/nextapps-de/winbox/dist/winbox.bundle.min.js"></script><script async src="//at.alicdn.com/t/c/font_3586335_hsivh70x0fm.js"></script><script async src="//at.alicdn.com/t/c/font_3636804_gr02jmjr3y9.js"></script><script async src="//at.alicdn.com/t/c/font_3612150_kfv55xn3u2g.js"></script><script async src="//at.alicdn.com/t/c/font_3874817_oq0w2btaabs.js"></script><script async src="https://cdn.wpon.cn/2022-sucai/Gold-ingot.js"></script><canvas id="universe"></canvas><canvas id="snow"></canvas><script defer src="/js/fomal.js"></script><script src="https://lib.baomitu.com/pjax/0.2.8/pjax.min.js"></script><script>let pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show","#web_bg",".js-pjax","#bibi","body > title","#app","#tag-echarts","#posts-echart","#categories-echarts"]
+
+var pjax = new Pjax({
+  elements: 'a:not([target="_blank"])',
+  selectors: pjaxSelectors,
+  cacheBust: false,
+  analytics: false,
+  scrollRestoration: false
+})
+
+document.addEventListener('pjax:send', function () {
+
+  // removeEventListener scroll 
+  window.tocScrollFn && window.removeEventListener('scroll', window.tocScrollFn)
+  window.scrollCollect && window.removeEventListener('scroll', scrollCollect)
+
+  typeof preloader === 'object' && preloader.initLoading()
+  document.getElementById('rightside').style.cssText = "opacity: ''; transform: ''"
+  
+  if (window.aplayers) {
+    for (let i = 0; i < window.aplayers.length; i++) {
+      if (!window.aplayers[i].options.fixed) {
+        window.aplayers[i].destroy()
+      }
+    }
+  }
+
+  typeof typed === 'object' && typed.destroy()
+
+  //reset readmode
+  const $bodyClassList = document.body.classList
+  $bodyClassList.contains('read-mode') && $bodyClassList.remove('read-mode')
+
+  typeof disqusjs === 'object' && disqusjs.destroy()
+})
+
+document.addEventListener('pjax:complete', function () {
+  window.refreshFn()
+
+  document.querySelectorAll('script[data-pjax]').forEach(item => {
+    const newScript = document.createElement('script')
+    const content = item.text || item.textContent || item.innerHTML || ""
+    Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+    newScript.appendChild(document.createTextNode(content))
+    item.parentNode.replaceChild(newScript, item)
+  })
+
+  GLOBAL_CONFIG.islazyload && window.lazyLoadInstance.update()
+
+  typeof chatBtnFn === 'function' && chatBtnFn()
+  typeof panguInit === 'function' && panguInit()
+
+  // google analytics
+  typeof gtag === 'function' && gtag('config', '', {'page_path': window.location.pathname});
+
+  // baidu analytics
+  typeof _hmt === 'object' && _hmt.push(['_trackPageview',window.location.pathname]);
+
+  typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+
+  // prismjs
+  typeof Prism === 'object' && Prism.highlightAll()
+
+  typeof preloader === 'object' && preloader.endLoading()
+})
+
+document.addEventListener('pjax:error', (e) => {
+  if (e.request.status === 404) {
+    pjax.loadUrl('/404.html')
+  }
+})</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><!-- hexo injector body_end start --><script data-pjax>
+  function butterfly_swiper_injector_config(){
+    var parent_div_git = document.getElementById('recent-posts');
+    var item_html = '<div class="recent-post-item" style="height: auto;width: 100%"><div class="blog-slider swiper-container-fade swiper-container-horizontal" id="swiper_container"><div class="blog-slider__wrp swiper-wrapper" style="transition-duration: 0ms;"><div class="blog-slider__item swiper-slide" style="width: 750px; opacity: 1; transform: translate3d(0px, 0px, 0px); transition-duration: 0ms;"><a class="blog-slider__img" onclick="pjax.loadUrl(&quot;posts/3ba5dfdb58f4.html&quot;);" href="javascript:void(0);" rel="external nofollow noreferrer" alt=""><img width="48" height="48" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/3fe27cac429733d9.png" alt="" onerror="this.src=https://unpkg.zhimg.com/akilar-candyassets/image/loading.gif; this.onerror = null;"/></a><div class="blog-slider__content"><span class="blog-slider__code">2022-02-14</span><a class="blog-slider__title" onclick="pjax.loadUrl(&quot;posts/3ba5dfdb58f4.html&quot;);" href="javascript:void(0);" rel="external nofollow noreferrer" alt="">每日 60S 早报</a><div class="blog-slider__text">🧭 每日 60 秒，读懂世界</div><a class="blog-slider__button" onclick="pjax.loadUrl(&quot;posts/3ba5dfdb58f4.html&quot;);" href="javascript:void(0);" rel="external nofollow noreferrer" alt="">详情       </a></div></div><div class="blog-slider__item swiper-slide" style="width: 750px; opacity: 1; transform: translate3d(0px, 0px, 0px); transition-duration: 0ms;"><a class="blog-slider__img" onclick="pjax.loadUrl(&quot;posts/4280e887a011.html&quot;);" href="javascript:void(0);" rel="external nofollow noreferrer" alt=""><img width="48" height="48" src= "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.niux.plus/LightPicture/2023/01/f5452888ae734a67.png" alt="" onerror="this.src=https://unpkg.zhimg.com/akilar-candyassets/image/loading.gif; this.onerror = null;"/></a><div class="blog-slider__content"><span class="blog-slider__code">2023-02-09</span><a class="blog-slider__title" onclick="pjax.loadUrl(&quot;posts/4280e887a011.html&quot;);" href="javascript:void(0);" rel="external nofollow noreferrer" alt="">Markdown语法与外挂标签写法汇总</a><div class="blog-slider__text">🥧本文汇总Markdown格式以及外挂标签在网页端的渲染效果，可作为文档进行查询</div><a class="blog-slider__button" onclick="pjax.loadUrl(&quot;posts/4280e887a011.html&quot;);" href="javascript:void(0);" rel="external nofollow noreferrer" alt="">详情       </a></div></div></div><div class="blog-slider__pagination swiper-pagination-clickable swiper-pagination-bullets"></div></div></div>';
+    // console.log('已挂载butterfly_swiper')
+    parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+    }
+  var elist = 'undefined'.split(',');
+  var cpage = location.pathname;
+  var epage = '/';
+  var flag = 0;
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_swiper_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_swiper_injector_config();
+  }
+  </script><script defer src="https://npm.elemecdn.com/hexo-butterfly-swiper/lib/swiper.min.js"></script><script defer data-pjax src="https://npm.elemecdn.com/hexo-butterfly-swiper/lib/swiper_init.js"></script><script data-pjax src="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.js"></script><script data-pjax>
+  function gitcalendar_injector_config(){
+      var parent_div_git = document.getElementById('gitZone');
+      var item_html = '<div class="recent-post-item" id="gitcalendarBar" style="width:100%;height:auto;padding:10px;"><style>#git_container{min-height: 320px}@media screen and (max-width:650px) {#git_container{min-height: 0px}}</style><div id="git_loading" style="width:10%;height:100%;margin:0 auto;display: block;"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 50 50" style="enable-background:new 0 0 50 50" xml:space="preserve"><path fill="#d0d0d0" d="M25.251,6.461c-10.318,0-18.683,8.365-18.683,18.683h4.068c0-8.071,6.543-14.615,14.615-14.615V6.461z" transform="rotate(275.098 25 25)"><animatetransform attributeType="xml" attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.6s" repeatCount="indefinite"></animatetransform></path></svg><style>#git_container{display: none;}</style></div><div id="git_container"></div></div>';
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+      console.log('已挂载gitcalendar')
+      }
+
+    if( document.getElementById('gitZone') && (location.pathname ==='/site/census/'|| '/site/census/' ==='all')){
+        gitcalendar_injector_config()
+        GitCalendarInit("/api?null",['#d9e0df', '#c6e0dc', '#a8dcd4', '#9adcd2', '#89ded1', '#77e0d0', '#5fdecb', '#47dcc6', '#39dcc3', '#1fdabe', '#00dab9'],'null')
+    }
+  </script><!-- hexo injector body_end end --></body></html>
